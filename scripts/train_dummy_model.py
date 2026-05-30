@@ -16,11 +16,11 @@ y = df['label']
 clf = RandomForestClassifier()
 clf.fit(X, y)
 
-# ✅ Chemin absolu depuis le dossier scripts/
+#  Chemin absolu depuis le dossier scripts/
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 save_path = os.path.join(project_root, 'backend', 'app', 'models', 'finance')
 os.makedirs(save_path, exist_ok=True)
 
 # Sauvegarde
 joblib.dump(clf, os.path.join(save_path, 'classification_model.pkl'))
-print("✅ Modèle dummy entraîné et sauvegardé avec succès.")
+print(" Modèle dummy entraîné et sauvegardé avec succès.")

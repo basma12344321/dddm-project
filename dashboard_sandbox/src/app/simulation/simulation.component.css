@@ -1,0 +1,200 @@
+/* Simulation Page Styles */
+
+/* Container général */
+.simulation-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #fff5f5 20%, #ffe8e8 40%, #f1f3f4 60%, #e9ecef 80%, #dee2e6 100%);
+}
+
+/* Titre principal */
+h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: #343a40;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Formulaire */
+form {
+  width: 100%;
+  max-width: 600px;
+  padding: 2rem;
+  background: linear-gradient(135deg, #ffffff 0%, #fefefe 50%, #fdfdfd 100%);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 71, 87, 0.1);
+  margin-bottom: 2rem;
+}
+
+/* Sections conditionnelles */
+form > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Champs de formulaire Material */
+mat-form-field {
+  width: 100%;
+}
+
+mat-form-field.mat-mdc-form-field {
+  background: linear-gradient(135deg, #f8f9fa 0%, #fff5f5 100%);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+mat-form-field.mat-mdc-form-field:hover {
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 71, 87, 0.1);
+}
+
+/* Bouton de simulation */
+form button[mat-raised-button] {
+  width: 100%;
+  height: 50px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 25px;
+  background: linear-gradient(45deg, #ff4757, #ff6b7a) !important;
+  color: white !important;
+  border: none;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+form button[mat-raised-button]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+form button[mat-raised-button]:hover::before {
+  left: 100%;
+}
+
+form button[mat-raised-button]:hover:not(:disabled) {
+  background: linear-gradient(45deg, #ff3742, #ff5722) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 71, 87, 0.3);
+}
+
+form button[mat-raised-button]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Section des résultats */
+div[*ngIf="result"] {
+  width: 100%;
+  max-width: 600px;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #fff5f5 50%, #f8f9fa 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 71, 87, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Titre des résultats */
+div[*ngIf="result"] h3 {
+  color: #343a40;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  font-size: 1.3rem;
+  text-align: center;
+}
+
+/* Paragraphes de résultats */
+div[*ngIf="result"] p {
+  margin: 0.5rem 0;
+  color: #6c757d;
+  line-height: 1.5;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #ffffff 0%, #fff8f8 100%);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 71, 87, 0.05);
+  transition: all 0.3s ease;
+}
+
+div[*ngIf="result"] p:hover {
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(255, 71, 87, 0.1);
+}
+
+div[*ngIf="result"] strong {
+  color: #343a40;
+  font-weight: 600;
+}
+
+/* Animation pour l'apparition des résultats */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .simulation-wrapper {
+    padding: 1rem;
+  }
+  
+  form, div[*ngIf="result"] {
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+  
+  form > div {
+    gap: 1rem;
+  }
+  
+  form button[mat-raised-button] {
+    height: 45px;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .simulation-wrapper {
+    padding: 0.5rem;
+  }
+  
+  form, div[*ngIf="result"] {
+    padding: 1rem;
+  }
+  
+  h2 {
+    font-size: 1.3rem;
+  }
+  
+  div[*ngIf="result"] p {
+    font-size: 0.9rem;
+    padding: 0.5rem;
+  }
+}

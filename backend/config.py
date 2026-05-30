@@ -1,18 +1,27 @@
 import os
+from pathlib import Path
 
 class Config:
-    # Chemin vers le dossier où seront enregistrés les fichiers CSV uploadés
-    
-    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    UPLOAD_FOLDER = os.path.join(BASE_DIR, 'data')
+    BASE_DIR = Path(__file__).parent
+    DATA_DIR = BASE_DIR / 'data'
+    MODELS_DIR = BASE_DIR / 'app' / 'models'
 
-    
-    # Types de fichiers autorisés pour l'upload
+    UPLOAD_FOLDER = str(DATA_DIR)
     ALLOWED_EXTENSIONS = {'csv', 'pdf'}
-
-    
-    # Taille maximale d’un fichier uploadé (ici 10 Mo)
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024
 
-    # Active le mode debug de Flask (affiche les erreurs dans le navigateur)
+    PLUGINS = {
+        'finance': {
+            'model_path': MODELS_DIR / 'finance' / 'regression_model.pkl',
+            'preprocessing': 'standard'
+        }
+    }
+
     DEBUG = True
+    SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'dev-key-123')
+
+    @classmethod
+    def init_app(cls, app):
+        cls.DATA_DIR.mkdir(exist_ok=True)
+        (cls.MODELS_DIR / 'finance').mkdir(parents=True, exist_ok=True)
+        app.config.from_object(cls)

@@ -1,0 +1,102 @@
+<mat-card class="result-wrapper">
+  <mat-card-header class="header">
+    <mat-card-title class="title">Résultat de l'analyse</mat-card-title>
+    
+  </mat-card-header>
+
+  <mat-divider></mat-divider>
+
+  <mat-card-content class="content">
+
+    <!-- 🔹 Cartes Résumé ROIC/Niveau/Conseil (plugin finance uniquement) -->
+    <div *ngIf="plugin === 'finance'" class="info-cards">
+      <div class="info-card" [ngClass]="getLevelColorClass(rawResult.niveau)">
+        <mat-icon>bar_chart</mat-icon>
+        <div class="info-content">
+          <p class="info-label">Niveau de rentabilité</p>
+          <p class="info-value">{{ rawResult.niveau }}</p>
+        </div>
+      </div>
+
+      <div class="info-card" [ngClass]="roicClass">
+        <mat-icon>trending_up</mat-icon>
+        <div class="info-content">
+          <p class="info-label">ROIC</p>
+          <p class="info-value">{{ (rawResult.roic * 100) | number:'1.1-1' }} %</p>
+        </div>
+      </div>
+
+      <div class="info-card conseil">
+        <mat-icon>tips_and_updates</mat-icon>
+        <div class="info-content">
+          <p class="info-label">Conseil</p>
+          <p class="info-value">{{ rawResult.commentaire }}</p>
+        </div>
+      </div>
+    </div>
+
+  
+
+  
+    <!-- 📊 Graphiques Finance -->
+    <div *ngIf="plugin === 'finance' && radarLabels.length > 0" class="charts-section">
+      <h3 class="section-title">Analyse financière</h3>
+      <div class="charts-row">
+
+        <mat-card class="chart-card">
+          <mat-card-header>
+            <mat-card-title class="chart-title">{{ radarTitle }}</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <apx-chart
+              [series]="[
+                { name: 'Entreprise', data: entrepriseRadarData },
+                { name: 'Secteur', data: secteurRadarData }
+              ]"
+              [chart]="{ type: 'radar', height: 350 }"
+              [xaxis]="{ categories: radarLabels }">
+            </apx-chart>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="chart-card">
+          <mat-card-header>
+            <mat-card-title class="chart-title">{{ barChartTitle }}</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <apx-chart
+              [series]="[{ name: 'ROIC prédit', data: barValues }]"
+              [chart]="{ type: 'bar', height: 350 }"
+              [xaxis]="{ categories: barLabels }"
+              [plotOptions]="{ bar: { horizontal: true } }">
+            </apx-chart>
+          </mat-card-content>
+        </mat-card>
+
+      </div>
+    </div>
+
+    <!-- 🏭 Gantt Logistique -->
+    <div *ngIf="plugin === 'logistic' && ganttSeries.length > 0" class="charts-section">
+      <h3 class="section-title">Diagramme de Gantt</h3>
+      <apx-chart 
+        [series]="ganttSeries"
+        [chart]="ganttChartOptions.chart"
+        [plotOptions]="ganttChartOptions.plotOptions"
+        [xaxis]="ganttChartOptions.xaxis"
+        [yaxis]="ganttChartOptions.yaxis"
+        [dataLabels]="ganttChartOptions.dataLabels">
+      </apx-chart>
+    </div>
+
+    
+    <!-- 🔁 Simulation -->
+    <div class="simulation-button-wrapper">
+      <button mat-raised-button color="primary" (click)="goToSimulation()">
+        <mat-icon>refresh</mat-icon>
+        Faire une simulation
+      </button>
+    </div>
+
+  </mat-card-content>
+</mat-card>

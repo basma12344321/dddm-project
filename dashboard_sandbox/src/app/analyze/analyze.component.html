@@ -1,0 +1,76 @@
+<mat-card class="analyze-wrapper">
+  <mat-card-title>Analyse de données métier</mat-card-title>
+  <mat-card-content>
+
+    <!-- Sélection du domaine -->
+    <mat-form-field appearance="fill" class="domain-select">
+      <mat-label>Domaine métier</mat-label>
+      <mat-select [(value)]="selectedDomain" required>
+        <mat-option *ngFor="let domain of domains" [value]="domain.value">
+          {{ domain.name }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <!-- Zone d'upload -->
+    <div class="file-upload-box"
+         (click)="fileInput.click()"
+         (dragover)="onDragOver($event)"
+         (drop)="onFileDrop($event)">
+      <input #fileInput
+             type="file"
+             hidden
+             (change)="onFileSelected($event)">
+
+      <mat-icon class="upload-icon">cloud_upload</mat-icon>
+      <p>{{ fileName || 'Déposez votre fichier ici ou cliquez pour sélectionner' }}</p>
+      <!-- ✅ Suppression du pipe 'fileSize' inexistant qui causait le crash -->
+      <small *ngIf="file">{{ fileName }} sélectionné</small>
+    </div>
+
+    <!-- Bouton d'analyse -->
+    <button mat-raised-button
+            color="primary"
+            class="analyze-button"
+            [disabled]="!isFormValid() || isLoading"
+            (click)="analyze()">
+      <span *ngIf="!isLoading">Lancer l'analyse</span>
+      <mat-spinner *ngIf="isLoading" diameter="20"></mat-spinner>
+    </button>
+
+    <!-- Feedback erreur -->
+    <div *ngIf="error" class="error-message">
+      <mat-icon>error_outline</mat-icon>
+      {{ error }}
+    </div>
+
+    <!-- Résultat Finance -->
+    <div *ngIf="analysisResult" class="result-block">
+      <mat-divider></mat-divider>
+      <h3>Résultat de l'analyse</h3>
+      <p><strong>ROIC :</strong> {{ analysisResult.roic }}</p>
+      <p><strong>Niveau :</strong> {{ analysisResult.niveau }}</p>
+      <p><strong>Commentaire :</strong> {{ analysisResult.commentaire }}</p>
+      <p><strong>Interprétation IA :</strong> {{ analysisResult.interpretation_ia }}</p>
+    </div>
+
+    <!-- Résultat Logistique -->
+    <div *ngIf="logisticsResult" class="result-block">
+      <mat-divider></mat-divider>
+      <h3>Résultat d'ordonnancement logistique</h3>
+      <p><strong>Nombre de tâches :</strong> {{ logisticsResult.nb_tasks }}</p>
+      <p><strong>Makespan :</strong> {{ logisticsResult.makespan }}</p>
+      <p><strong>Note :</strong> {{ logisticsResult.note }}</p>
+
+      <h4>Affectations :</h4>
+      <mat-list>
+        <mat-list-item *ngFor="let assign of logisticsResult.assignments">
+          <mat-icon mat-list-icon>assignment</mat-icon>
+          <div mat-line>{{ assign.task }} → {{ assign.machine }}</div>
+          <div mat-line>{{ assign.start_time }} → {{ assign.end_time }}</div>
+        </mat-list-item>
+      </mat-list>
+    </div>
+
+  </mat-card-content>
+</mat-card>

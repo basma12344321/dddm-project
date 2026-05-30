@@ -1,0 +1,55 @@
+<div class="simulation-wrapper">
+  <mat-card class="simulation-card">
+
+    <h2 class="simulation-title">Simulation : {{ plugin | titlecase }}</h2>
+
+    <form [formGroup]="simulationForm" (ngSubmit)="onSubmit()" class="simulation-form">
+      <!-- Finance -->
+      <div *ngIf="plugin === 'finance'">
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Revenue</mat-label>
+          <input matInput type="number" formControlName="revenue">
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>R&D to Revenue</mat-label>
+          <input matInput type="number" formControlName="r_and_d">
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>SG&A to Revenue</mat-label>
+          <input matInput type="number" formControlName="sga">
+        </mat-form-field>
+      </div>
+
+      <!-- Logistique -->
+      <div *ngIf="plugin === 'logistic'">
+        <h3>Modifier les tâches</h3>
+        <div *ngFor="let task of tasks; let i = index" class="task-row">
+          <mat-form-field appearance="fill">
+            <mat-label>Durée (Tâche {{ i }})</mat-label>
+            <input matInput type="number" [(ngModel)]="task.Duration" name="duration{{i}}">
+          </mat-form-field>
+
+          <mat-form-field appearance="fill">
+            <mat-label>Deadline</mat-label>
+            <input matInput type="number" [(ngModel)]="task.Deadline" name="deadline{{i}}">
+          </mat-form-field>
+        </div>
+      </div>
+
+
+      <button mat-raised-button color="accent" class="analyze-button" [disabled]="isLoading">
+        {{ isLoading ? 'Simulation en cours...' : 'Lancer la simulation' }}
+      </button>
+    </form>
+
+    <div *ngIf="result" class="result-block">
+      <h3>Résultat de la simulation</h3>
+      <p><strong>ROIC :</strong> {{ result.roic * 100 | number:'1.1-1' }}%</p>
+      <p><strong>Niveau :</strong> {{ result.niveau }}</p>
+      <p><strong>Commentaire :</strong> {{ result.commentaire }}</p>
+    </div>
+
+  </mat-card>
+</div>
