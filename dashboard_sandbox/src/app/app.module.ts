@@ -29,6 +29,8 @@ import { FileSizePipe } from './shared/pipes/file-size.pipe';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { HomeComponent } from './home/home.component';
+import { LoginComponent } from './login/login.component';
+import { RegisterComponent } from './register/register.component';
 
 @NgModule({
   imports: [
@@ -60,6 +62,8 @@ import { HomeComponent } from './home/home.component';
    
     FileSizePipe,
     HomeComponent,
+    LoginComponent,
+    RegisterComponent,
     
  
    

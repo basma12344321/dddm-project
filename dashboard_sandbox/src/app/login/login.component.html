@@ -1,0 +1,57 @@
+<!-- src/app/login/login.component.html -->
+<div class="login-wrapper">
+  <div class="login-card">
+
+    <div class="logo-section">
+      <div class="logo-icon">
+        <mat-icon>bar_chart</mat-icon>
+      </div>
+      <h1 class="brand-title">Smart<span>Decide</span></h1>
+      <p class="brand-subtitle">Data-Driven Decision Maker</p>
+    </div>
+
+    <h2 class="form-title">Connexion</h2>
+
+    <div *ngIf="error" class="error-message">
+      <mat-icon>error_outline</mat-icon>
+      {{ error }}
+    </div>
+
+    <div class="field-group">
+      <label>Email</label>
+      <div class="input-wrapper">
+        <mat-icon class="input-icon">mail_outline</mat-icon>
+        <input type="email" [(ngModel)]="email" placeholder="votre@email.com">
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label>Mot de passe</label>
+      <div class="input-wrapper">
+        <mat-icon class="input-icon">lock_outline</mat-icon>
+        <input [type]="hidePassword ? 'password' : 'text'" [(ngModel)]="password" placeholder="••••••••">
+        <mat-icon class="input-icon-right" (click)="hidePassword = !hidePassword">
+          {{ hidePassword ? 'visibility_off' : 'visibility' }}
+        </mat-icon>
+      </div>
+    </div>
+
+    <button class="login-button" [disabled]="isLoading" (click)="login()">
+      <mat-spinner *ngIf="isLoading" diameter="18"></mat-spinner>
+      <mat-icon *ngIf="!isLoading">login</mat-icon>
+      <span *ngIf="!isLoading">Se connecter</span>
+    </button>
+
+    <div class="divider">
+      <span></span>
+      <p>ou</p>
+      <span></span>
+    </div>
+
+    <p class="register-link">
+      Pas encore de compte ?
+      <a routerLink="/register">Créer un compte</a>
+    </p>
+
+  </div>
+</div>

@@ -72,4 +72,4 @@ if __name__ == '__main__':
         for rule in app.url_map.iter_rules():
             print(rule)
 
-    app.run(debug=app.config['DEBUG'], host='0.0.0.0', port=5000)
+    app.run(debug=app.config['DEBUG'], host='0.0.0.0', port=5000, use_reloader=False)

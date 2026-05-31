@@ -1,0 +1,68 @@
+<!-- src/app/register/register.component.html -->
+<div class="register-wrapper">
+  <div class="register-card">
+
+    <div class="logo-section">
+      <div class="logo-icon">
+        <mat-icon>bar_chart</mat-icon>
+      </div>
+      <h1 class="brand-title">Smart<span>Decide</span></h1>
+      <p class="brand-subtitle">Data-Driven Decision Maker</p>
+    </div>
+
+    <h2 class="form-title">Créer un compte</h2>
+
+    <div *ngIf="error" class="error-message">
+      <mat-icon>error_outline</mat-icon>
+      {{ error }}
+    </div>
+
+    <div class="field-group">
+      <label>Email</label>
+      <div class="input-wrapper">
+        <mat-icon class="input-icon">mail_outline</mat-icon>
+        <input type="email" [(ngModel)]="email" placeholder="votre@email.com">
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label>Mot de passe</label>
+      <div class="input-wrapper">
+        <mat-icon class="input-icon">lock_outline</mat-icon>
+        <input [type]="hidePassword ? 'password' : 'text'" [(ngModel)]="password" placeholder="••••••••">
+        <mat-icon class="input-icon-right" (click)="hidePassword = !hidePassword">
+          {{ hidePassword ? 'visibility_off' : 'visibility' }}
+        </mat-icon>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label>Confirmer le mot de passe</label>
+      <div class="input-wrapper">
+        <mat-icon class="input-icon">lock_outline</mat-icon>
+        <input [type]="hideConfirm ? 'password' : 'text'" [(ngModel)]="confirmPassword" placeholder="••••••••">
+        <mat-icon class="input-icon-right" (click)="hideConfirm = !hideConfirm">
+          {{ hideConfirm ? 'visibility_off' : 'visibility' }}
+        </mat-icon>
+      </div>
+    </div>
+
+    <button class="register-button" [disabled]="isLoading" (click)="register()">
+      <mat-spinner *ngIf="isLoading" diameter="18"></mat-spinner>
+      <mat-icon *ngIf="!isLoading">person_add</mat-icon>
+      <span *ngIf="!isLoading">Créer mon compte</span>
+    </button>
+
+    <div class="divider">
+      <span></span>
+      <p>ou</p>
+      <span></span>
+    </div>
+
+    <p class="login-link">
+      Déjà un compte ?
+      <a routerLink="/login">Se connecter</a>
+    </p>
+
+  </div>
+</div>
