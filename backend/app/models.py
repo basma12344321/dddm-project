@@ -1,7 +1,9 @@
-# app/models/__init__.py
+# app/models.py
 
 from datetime import datetime
-from app.extensions import db  # ✅ Import depuis extensions.py (instance unique)
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
 
 
 class User(db.Model):
@@ -10,7 +12,7 @@ class User(db.Model):
     id            = db.Column(db.Integer, primary_key=True)
     email         = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    role          = db.Column(db.String(50), default='analyste')
+    role          = db.Column(db.String(50), default='analyste')  # admin / analyste / lecteur
     created_at    = db.Column(db.DateTime, default=datetime.utcnow)
 
     analyses = db.relationship('Analysis', backref='user', lazy=True)
@@ -27,13 +29,13 @@ class User(db.Model):
 class Analysis(db.Model):
     __tablename__ = 'analyses'
 
-    id          = db.Column(db.Integer, primary_key=True)
-    user_id     = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    domain      = db.Column(db.String(50), nullable=False)
-    plugin_name = db.Column(db.String(100), nullable=False)
-    filename    = db.Column(db.String(255), nullable=True)
-    result_json = db.Column(db.JSON, nullable=True)
-    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+    id            = db.Column(db.Integer, primary_key=True)
+    user_id       = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    domain        = db.Column(db.String(50), nullable=False)   # finance / logistic
+    plugin_name   = db.Column(db.String(100), nullable=False)
+    filename      = db.Column(db.String(255), nullable=True)
+    result_json   = db.Column(db.JSON, nullable=True)
+    created_at    = db.Column(db.DateTime, default=datetime.utcnow)
 
     simulations = db.relationship('Simulation', backref='analysis', lazy=True)
 

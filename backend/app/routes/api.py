@@ -1,4 +1,7 @@
+# app/routes/api.py
+
 from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 import os
 import math
 import pandas as pd
@@ -6,6 +9,7 @@ import traceback
 
 from app.core_engine.core_engine import clean_data
 from app.core_engine.plugin_loader import load_plugin
+from app.models import db, Analysis, Simulation
 
 api_bp = Blueprint('api', __name__)
 
@@ -15,10 +19,7 @@ def allowed_file(filename):
 
 
 def sanitize_for_json(obj):
-    """
-    Remplace récursivement NaN et Infinity par None (null en JSON).
-    Évite le bug 'NaN is not valid JSON' côté Angular.
-    """
+    """Remplace NaN et Infinity par None (null en JSON valide)."""
     if isinstance(obj, dict):
         return {k: sanitize_for_json(v) for k, v in obj.items()}
     elif isinstance(obj, list):
@@ -29,6 +30,16 @@ def sanitize_for_json(obj):
         return obj
     else:
         return obj
+
+
+def get_current_user_id():
+    """Récupère l'ID utilisateur depuis le token JWT si présent."""
+    try:
+        verify_jwt_in_request(optional=True)
+        user_id = get_jwt_identity()
+        return int(user_id) if user_id else None
+    except Exception:
+        return None
 
 
 @api_bp.route('/upload', methods=['POST'])
@@ -42,27 +53,24 @@ def upload_file():
 
     if allowed_file(file.filename):
         filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], file.filename)
-        print(f"Tentative de sauvegarde dans : {filepath}")
+        print(f"Sauvegarde dans : {filepath}")
         try:
             file.save(filepath)
-            print("Fichier bien sauvegarde !")
+            print("Fichier sauvegarde !")
         except Exception as e:
             print("Erreur pendant la sauvegarde :", e)
 
         return jsonify({"message": f"Fichier {file.filename} bien recu."}), 200
     else:
-        return jsonify({"error": "Format de fichier invalide (seuls .csv et .pdf autorises)"}), 400
+        return jsonify({"error": "Format invalide (csv et pdf uniquement)"}), 400
 
 
 @api_bp.route('/analyze', methods=['POST'])
 def analyze():
-    print("\n=== Requete recue sur /analyze ===")
+    print("\n=== Requete /analyze ===")
 
     if not request.is_json:
-        return jsonify({
-            "error": "Unsupported Media Type",
-            "message": "Content-Type must be application/json"
-        }), 415
+        return jsonify({"error": "Content-Type must be application/json"}), 415
 
     try:
         data = request.get_json()
@@ -72,15 +80,14 @@ def analyze():
         required_fields = ['filename', 'tache', 'domaine']
         missing_fields = [f for f in required_fields if f not in data]
         if missing_fields:
-            return jsonify({"error": "Missing required fields", "missing": missing_fields}), 400
+            return jsonify({"error": "Missing fields", "missing": missing_fields}), 400
 
         filename = data['filename']
-        tache = data['tache']
-        domaine = data['domaine']
+        domaine  = data['domaine']
 
         filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
         if not os.path.exists(filepath):
-            return jsonify({"error": "Fichier non trouve", "path": filepath}), 404
+            return jsonify({"error": "Fichier non trouve"}), 404
 
         filetype = 'pdf' if filename.lower().endswith('.pdf') else 'csv'
 
@@ -88,25 +95,37 @@ def analyze():
         plugin = load_plugin(domaine)
 
         if domaine == 'logistic':
-            print("Analyse specifique du plugin logistique")
             raw_result = plugin.schedule(df_raw)
             result = plugin.interpret(raw_result)
         else:
-            df_clean = plugin.preprocess(df_raw)
-            prediction = plugin._make_prediction(df_clean)
-            result = plugin.interpret(prediction)
+            df_clean    = plugin.preprocess(df_raw)
+            prediction  = plugin._make_prediction(df_clean)
+            result      = plugin.interpret(prediction)
 
-        # ✅ Ajout de input_data avec NaN nettoyés
+        # Ajouter input_data
         if isinstance(df_raw, pd.DataFrame) and not df_raw.empty:
             try:
-                input_dict = df_raw.iloc[0].to_dict()
-                result["input_data"] = sanitize_for_json(input_dict)
-            except Exception as e:
-                print("Impossible d'ajouter input_data :", str(e))
+                result["input_data"] = sanitize_for_json(df_raw.iloc[0].to_dict())
+            except Exception:
                 result["input_data"] = {}
 
-        # ✅ Nettoyage complet du résultat avant sérialisation JSON
         result = sanitize_for_json(result)
+
+        # ✅ Sauvegarder l'analyse dans PostgreSQL
+        user_id = get_current_user_id()
+        analysis = Analysis(
+            user_id     = user_id,
+            domain      = domaine,
+            plugin_name = domaine,
+            filename    = filename,
+            result_json = result
+        )
+        db.session.add(analysis)
+        db.session.commit()
+        print(f"Analyse sauvegardee en base (id={analysis.id})")
+
+        # Ajouter l'ID de l'analyse dans la réponse
+        result["analysis_id"] = analysis.id
 
         return jsonify(result)
 
@@ -118,37 +137,78 @@ def analyze():
 
 @api_bp.route('/simulate', methods=['POST'])
 def simulate():
-    print("Entree confirmee dans la route /simulate")
+    print("Entree dans /simulate")
     if not request.is_json:
         return jsonify({"error": "Content-Type must be application/json"}), 415
 
     payload = request.get_json(silent=True)
     if payload is None:
-        return jsonify({"error": "Invalid JSON data"}), 400
+        return jsonify({"error": "Invalid JSON"}), 400
 
     plugin_name = payload.get("plugin")
-    scenario = payload.get("params", {})
+    scenario    = payload.get("params", {})
+    analysis_id = payload.get("analysis_id")
 
     if not plugin_name:
-        return jsonify({"error": "Missing required parameter: 'plugin'"}), 400
+        return jsonify({"error": "Missing 'plugin'"}), 400
     if not scenario:
-        return jsonify({"error": "Missing or empty 'params' object"}), 400
+        return jsonify({"error": "Missing 'params'"}), 400
 
     try:
         plugin = load_plugin(plugin_name)
         result = plugin.simulate(scenario)
         result = sanitize_for_json(result)
+
+        # ✅ Sauvegarder la simulation dans PostgreSQL
+        simulation = Simulation(
+            analysis_id     = analysis_id,
+            scenario_params = scenario,
+            result_json     = result
+        )
+        db.session.add(simulation)
+        db.session.commit()
+        print(f"Simulation sauvegardee en base (id={simulation.id})")
+
+        result["simulation_id"] = simulation.id
         return jsonify(result)
+
     except Exception as e:
-        print(f"Erreur dans plugin.simulate(): {str(e)}")
+        print(f"Erreur simulate: {str(e)}")
         return jsonify({"error": f"Simulation failed: {str(e)}"}), 500
+
+
+@api_bp.route('/analyses', methods=['GET'])
+def get_analyses():
+    """Récupérer l'historique de toutes les analyses."""
+    try:
+        user_id = get_current_user_id()
+
+        if user_id:
+            analyses = Analysis.query.filter_by(user_id=user_id).order_by(
+                Analysis.created_at.desc()
+            ).all()
+        else:
+            analyses = Analysis.query.order_by(Analysis.created_at.desc()).limit(50).all()
+
+        return jsonify([a.to_dict() for a in analyses]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route('/analyses/<int:analysis_id>', methods=['GET'])
+def get_analysis(analysis_id):
+    """Récupérer une analyse spécifique par son ID."""
+    analysis = Analysis.query.get(analysis_id)
+    if not analysis:
+        return jsonify({"error": "Analyse non trouvee"}), 404
+    return jsonify(analysis.to_dict()), 200
 
 
 @api_bp.route("/schedule", methods=["POST"])
 def schedule():
-    data = request.get_json()
+    data        = request.get_json()
     plugin_name = data.get("plugin")
-    scenario = data.get("scenario")
+    scenario    = data.get("scenario")
 
     if not plugin_name or not scenario:
         return jsonify({"error": "Missing plugin or scenario"}), 400
@@ -156,7 +216,7 @@ def schedule():
     plugin = load_plugin(plugin_name)
 
     try:
-        result = plugin.schedule(scenario)
+        result      = plugin.schedule(scenario)
         interpreted = plugin.interpret(result)
         interpreted = sanitize_for_json(interpreted)
         return jsonify(interpreted)
@@ -170,7 +230,6 @@ def dashboard_data():
 
     try:
         data_path = os.path.join(current_app.root_path, 'data', 'df_final.csv')
-        print(f"Lecture du fichier : {data_path}")
         df = pd.read_csv(data_path)
 
         if df.empty:
@@ -209,11 +268,11 @@ def dashboard_data():
             'Predicted_ROIC', ascending=False
         ).reset_index(drop=True)
 
-        top = classement.head(10)
+        top    = classement.head(10)
         labels = [f"Entreprise {i+1}" for i in top.index]
         values = (top["Predicted_ROIC"] * 100).round(1).tolist()
 
-        entreprise = top.iloc[0]
+        entreprise      = top.iloc[0]
         secteur_moyenne = classement.mean(numeric_only=True)
 
         radar_features = [
@@ -222,10 +281,10 @@ def dashboard_data():
         ]
 
         radar_data = {
-            'labels': radar_features,
+            'labels':     radar_features,
             'entreprise': [round(float(entreprise.get(f, 0)), 2) for f in radar_features],
-            'secteur': [round(float(secteur_moyenne.get(f, 0)), 2) for f in radar_features],
-            'titre': "Comparaison du profil financier (valeurs brutes)"
+            'secteur':    [round(float(secteur_moyenne.get(f, 0)), 2) for f in radar_features],
+            'titre':      "Comparaison du profil financier (valeurs brutes)"
         }
 
         response = sanitize_for_json({
@@ -233,7 +292,7 @@ def dashboard_data():
                 'labels': labels,
                 'values': values,
                 'secteur': secteur,
-                'titre': "Top 10 des entreprises du secteur selon le ROIC (%)"
+                'titre':  "Top 10 des entreprises du secteur selon le ROIC (%)"
             },
             'radar': radar_data
         })
