@@ -1,14 +1,13 @@
 <mat-card class="result-wrapper">
   <mat-card-header class="header">
     <mat-card-title class="title">Résultat de l'analyse</mat-card-title>
-    
   </mat-card-header>
 
   <mat-divider></mat-divider>
 
   <mat-card-content class="content">
 
-    <!-- 🔹 Cartes Résumé ROIC/Niveau/Conseil (plugin finance uniquement) -->
+    <!-- Cartes Résumé ROIC/Niveau/Conseil -->
     <div *ngIf="plugin === 'finance'" class="info-cards">
       <div class="info-card" [ngClass]="getLevelColorClass(rawResult.niveau)">
         <mat-icon>bar_chart</mat-icon>
@@ -35,10 +34,45 @@
       </div>
     </div>
 
-  
+    <!-- ✅ Section SHAP - Explicabilité -->
+    <div *ngIf="plugin === 'finance' && showShap" class="shap-section">
+      <h3 class="section-title">
+        <mat-icon>psychology</mat-icon>
+        Pourquoi ce ROIC ? — Facteurs déterminants
+      </h3>
 
-  
-    <!-- 📊 Graphiques Finance -->
+      <p class="shap-subtitle">
+        Valeur de base du modèle : <strong>{{ (shapBaseValue * 100) | number:'1.2-2' }} %</strong>
+      </p>
+
+      <!-- Barres SHAP -->
+      <div class="shap-bars">
+        <div *ngFor="let f of shapTopFeatures" class="shap-bar-row">
+          <div class="shap-feature-name">{{ f.feature }}</div>
+          <div class="shap-bar-container">
+            <div
+              class="shap-bar"
+              [style.width]="getShapBarWidth(f.abs_impact)"
+              [style.background]="getShapBarColor(f.impact)">
+            </div>
+          </div>
+          <div class="shap-value" [style.color]="getShapBarColor(f.impact)">
+            {{ f.impact === 'positif' ? '+' : '' }}{{ (f.shap_value * 100) | number:'1.3-3' }}%
+          </div>
+          <div class="shap-badge" [class.positif]="f.impact === 'positif'" [class.negatif]="f.impact === 'negatif'">
+            {{ f.impact === 'positif' ? '↑ Augmente' : '↓ Diminue' }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Légende -->
+      <div class="shap-legend">
+        <span class="legend-item positif"><span class="dot"></span> Augmente le ROIC</span>
+        <span class="legend-item negatif"><span class="dot"></span> Diminue le ROIC</span>
+      </div>
+    </div>
+
+    <!-- Graphiques Finance -->
     <div *ngIf="plugin === 'finance' && radarLabels.length > 0" class="charts-section">
       <h3 class="section-title">Analyse financière</h3>
       <div class="charts-row">
@@ -76,10 +110,10 @@
       </div>
     </div>
 
-    <!-- 🏭 Gantt Logistique -->
+    <!-- Gantt Logistique -->
     <div *ngIf="plugin === 'logistic' && ganttSeries.length > 0" class="charts-section">
       <h3 class="section-title">Diagramme de Gantt</h3>
-      <apx-chart 
+      <apx-chart
         [series]="ganttSeries"
         [chart]="ganttChartOptions.chart"
         [plotOptions]="ganttChartOptions.plotOptions"
@@ -89,8 +123,7 @@
       </apx-chart>
     </div>
 
-    
-    <!-- 🔁 Simulation -->
+    <!-- Bouton Simulation -->
     <div class="simulation-button-wrapper">
       <button mat-raised-button color="primary" (click)="goToSimulation()">
         <mat-icon>refresh</mat-icon>

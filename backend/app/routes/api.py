@@ -100,7 +100,8 @@ def analyze():
         else:
             df_clean    = plugin.preprocess(df_raw)
             prediction  = plugin._make_prediction(df_clean)
-            result      = plugin.interpret(prediction)
+            # ✅ Passer df_clean pour le calcul SHAP
+            result      = plugin.interpret(prediction, df_clean)
 
         # Ajouter input_data
         if isinstance(df_raw, pd.DataFrame) and not df_raw.empty:

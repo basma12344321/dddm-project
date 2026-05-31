@@ -3,6 +3,7 @@ import joblib
 import pandas as pd
 import numpy as np
 import os
+import shap
 from typing import Union, Dict
 from app.llm_utils import generate_interpretation
 
@@ -27,6 +28,15 @@ class FinancePlugin(BasePlugin):
 
         self.seuil_bas = 0.05
         self.seuil_haut = 0.15
+
+        # ✅ Initialiser l'explainer SHAP une seule fois au chargement
+        try:
+            self.explainer = shap.TreeExplainer(self.model)
+            print("SHAP TreeExplainer initialisé avec succès")
+        except Exception as e:
+            print(f"Avertissement SHAP: {str(e)}")
+            self.explainer = None
+
         print(f"Plugin Finance initialisé avec modèle: {type(self.model)}")
 
     def _validate_model_features(self):
@@ -37,7 +47,6 @@ class FinancePlugin(BasePlugin):
         print(f"Features attendues par le modèle: {self.expected_features}")
 
     def _normalize_col_name(self, col: str) -> str:
-        """Normalise un nom de colonne : lowercase, sans espaces/tirets/underscores/&"""
         return (
             col.strip().lower()
             .replace(' ', '').replace('-', '').replace('_', '').replace('&', '')
@@ -47,7 +56,6 @@ class FinancePlugin(BasePlugin):
         print("Entree dans preprocess()")
 
         try:
-            # 1. Convertir en DataFrame avec index propre
             if isinstance(data, dict):
                 df = pd.DataFrame([data]).reset_index(drop=True)
             else:
@@ -55,11 +63,9 @@ class FinancePlugin(BasePlugin):
 
             print(f"Shape initiale: {df.shape}")
 
-            # 2. Créer un mapping col_normalisée -> col_originale
             col_norm_map = {self._normalize_col_name(c): c for c in df.columns}
 
             def get_col(df, *keys):
-                """Récupère la première colonne trouvée parmi les clés normalisées."""
                 for key in keys:
                     norm = self._normalize_col_name(key)
                     if norm in col_norm_map:
@@ -75,7 +81,6 @@ class FinancePlugin(BasePlugin):
                     errors='coerce'
                 ).fillna(default)
 
-            # 3. Extraire chaque feature avec plusieurs variantes de noms
             ebit         = get_numeric(df, 'EBIT', 'ebit')
             revenue      = get_numeric(df, 'Revenue', 'revenue', 'Total Revenue')
             inv_cap      = get_numeric(df, 'Invested Capital', 'investedcapital', 'InvestedCapital')
@@ -85,7 +90,6 @@ class FinancePlugin(BasePlugin):
                                        'Debt/Equity', 'Debt to Equity')
             market_cap   = get_numeric(df, 'Market Cap', 'marketcap', 'MarketCap')
 
-            # R&D to Revenue : ratio direct ou calculé
             rd_to_rev_col = get_col(df, 'R&D to Revenue', 'rdtorevenue', 'RdToRevenue')
             if rd_to_rev_col is not None:
                 rd_to_rev = pd.to_numeric(
@@ -99,7 +103,6 @@ class FinancePlugin(BasePlugin):
                     index=df.index
                 )
 
-            # SG&A to Revenue : ratio direct ou calculé
             sga_to_rev_col = get_col(df, 'SG&A to Revenue', 'sgatorevenue', 'SgaToRevenue')
             if sga_to_rev_col is not None:
                 sga_to_rev = pd.to_numeric(
@@ -113,13 +116,11 @@ class FinancePlugin(BasePlugin):
                     index=df.index
                 )
 
-            # Asset Turnover calculé
             asset_turnover = pd.Series(
                 np.where(total_assets != 0, revenue / total_assets, 0.0),
                 index=df.index
             )
 
-            # 4. Secteur
             sector_raw = get_col(df, 'Sector_Grouped', 'Sector', 'sector', 'sectorgrouped')
             if sector_raw is not None:
                 sector_series = sector_raw.astype(str).str.strip()
@@ -127,13 +128,11 @@ class FinancePlugin(BasePlugin):
                 print("Sector manquant -> ajout 'Other'")
                 sector_series = pd.Series(['Other'] * len(df), index=df.index)
 
-            # 5. One-hot encoding secteur
             sectors = [
                 'Consumer Cyclical', 'Consumer Defensive', 'Energy',
                 'Healthcare', 'Industrials', 'Technology'
             ]
 
-            # 6. Construire le DataFrame final en une seule opération (evite fragmentation)
             expected_cols = [
                 'EBIT', 'Invested Capital', 'Free Cash Flow', 'Asset Turnover',
                 'Debt to Equity', 'R&D to Revenue', 'SG&A to Revenue', 'Market Cap',
@@ -183,7 +182,74 @@ class FinancePlugin(BasePlugin):
 
         return float(y_pred[0])
 
-    def interpret(self, raw_output: float) -> Dict:
+    def _compute_shap(self, df: pd.DataFrame) -> Dict:
+        """
+        Calcule les valeurs SHAP pour la première ligne du DataFrame.
+        Retourne un dict avec les features triées par importance décroissante.
+        """
+        if self.explainer is None:
+            return {}
+
+        try:
+            # Calculer les valeurs SHAP
+            shap_values = self.explainer.shap_values(df)
+
+            # Prendre la première ligne
+            shap_row = shap_values[0] if len(shap_values.shape) > 1 else shap_values
+
+            feature_names = df.columns.tolist()
+
+            # Créer la liste des features avec leur valeur SHAP
+            shap_data = []
+            for i, feature in enumerate(feature_names):
+                # Ignorer les colonnes secteur pour la lisibilité
+                if not feature.startswith('Sector_'):
+                    shap_data.append({
+                        'feature': feature,
+                        'shap_value': round(float(shap_row[i]), 6),
+                        'feature_value': round(float(df[feature].iloc[0]), 4),
+                        'impact': 'positif' if shap_row[i] > 0 else 'negatif',
+                        'abs_impact': abs(float(shap_row[i]))
+                    })
+
+            # Trier par impact absolu décroissant
+            shap_data.sort(key=lambda x: x['abs_impact'], reverse=True)
+
+            # Garder top 5 features les plus influentes
+            top_features = shap_data[:5]
+
+            # Générer une explication textuelle
+            explanation = self._generate_shap_explanation(top_features)
+
+            print(f"SHAP calculé avec succès : {len(top_features)} features principales")
+
+            return {
+                'shap_values': shap_data,
+                'top_features': top_features,
+                'explanation': explanation,
+                'base_value': round(float(self.explainer.expected_value), 4)
+            }
+
+        except Exception as e:
+            print(f"Erreur calcul SHAP: {str(e)}")
+            return {}
+
+    def _generate_shap_explanation(self, top_features: list) -> str:
+        """Génère une explication textuelle lisible à partir des top features SHAP."""
+        if not top_features:
+            return "Explication non disponible."
+
+        lines = []
+        for f in top_features:
+            direction = "augmente" if f['impact'] == 'positif' else "diminue"
+            lines.append(
+                f"• {f['feature']} (valeur: {f['feature_value']}) "
+                f"→ {direction} le ROIC de {abs(f['shap_value']):.4f}"
+            )
+
+        return "\n".join(lines)
+
+    def interpret(self, raw_output, df_preprocessed: pd.DataFrame = None) -> Dict:
         roic = raw_output
 
         if roic < self.seuil_bas:
@@ -205,18 +271,25 @@ class FinancePlugin(BasePlugin):
         prompt = f"Explique un ROIC de {result['roic']} ({niveau}) simplement."
         result["interpretation_ia"] = generate_interpretation(prompt)
 
+        # ✅ Ajouter les valeurs SHAP si le DataFrame est fourni
+        if df_preprocessed is not None:
+            shap_result = self._compute_shap(df_preprocessed)
+            if shap_result:
+                result["shap"] = shap_result
+                print("SHAP ajouté au résultat")
+
         return result
 
     def simulate_from_file(self, df: pd.DataFrame) -> Dict:
         df_clean = self.preprocess(df)
         prediction = self._make_prediction(df_clean)
-        return self.interpret(prediction)
+        return self.interpret(prediction, df_clean)
 
     def simulate(self, scenario: Dict) -> Dict:
         print("Simulation lancee")
         df = self.preprocess(scenario)
         prediction = self._make_prediction(df)
-        return self.interpret(prediction)
+        return self.interpret(prediction, df)
 
     def schedule(self, data, algorithm="FCFS"):
         print("Scheduling non implemente dans le plugin Finance")
