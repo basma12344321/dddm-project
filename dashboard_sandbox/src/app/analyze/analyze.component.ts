@@ -1,8 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
-
 import { ApiService } from '../services/api.service';
 
 interface Domain {
@@ -22,24 +21,17 @@ export class AnalyzeComponent implements OnInit {
   ];
 
   selectedDomain: string | null = null;
+  analysisMode: 'file' | 'ticker' = 'file';
+  tickerSymbol = '';
+  exampleTickers = ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA', 'AMZN'];
+
   file: File | null = null;
   fileName = '';
   isLoading = false;
   error = '';
 
-  analysisResult: {
-    roic: number;
-    niveau: string;
-    commentaire: string;
-    interpretation_ia: string;
-  } | null = null;
-
-  logisticsResult: {
-    assignments: any[];
-    makespan: number;
-    nb_tasks: number;
-    note: string;
-  } | null = null;
+  analysisResult: any = null;
+  logisticsResult: any = null;
 
   constructor(
     private snackBar: MatSnackBar,
@@ -73,26 +65,52 @@ export class AnalyzeComponent implements OnInit {
   }
 
   private handleFile(file: File): void {
-    if (this.isValidFileType(file)) {
-      this.file = file;
-      this.fileName = file.name;
-      this.analysisResult = null;
-      this.error = '';
-    } else {
-      this.error = 'Type de fichier non supporté';
-      this.snackBar.open(this.error, 'Fermer', { duration: 3000 });
-    }
-  }
-
-  private isValidFileType(file: File): boolean {
     const allowedTypes = [
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'text/csv'
     ];
-    return allowedTypes.includes(file.type);
+    if (allowedTypes.includes(file.type) || file.name.endsWith('.csv')) {
+      this.file = file;
+      this.fileName = file.name;
+      this.error = '';
+    } else {
+      this.error = 'Type de fichier non supporté (CSV ou PDF uniquement)';
+    }
   }
 
+  // ✅ Analyse via ticker yfinance
+  analyzeTicker(): void {
+    if (!this.tickerSymbol) return;
+
+    this.isLoading = true;
+    this.error = '';
+
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+
+    this.http.post(
+      'http://127.0.0.1:5000/analyze-ticker',
+      { ticker: this.tickerSymbol.toUpperCase() },
+      { headers }
+    ).subscribe({
+      next: (response: any) => {
+        this.isLoading = false;
+        console.log('Réponse ticker :', response);
+        this.snackBar.open(`Analyse de ${this.tickerSymbol} terminée !`, 'Fermer', { duration: 3000 });
+        this.router.navigate(['/analyze-result'], {
+          queryParams: { plugin: 'finance', interpretation: response.interpretation_ia || '' },
+          state: { result: response }
+        });
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.error = err.error?.error || `Ticker '${this.tickerSymbol}' introuvable.`;
+        console.error('Erreur ticker :', err);
+      }
+    });
+  }
+
+  // ✅ Analyse via fichier CSV
   analyze(): void {
     if (!this.isFormValid()) return;
 
@@ -101,10 +119,6 @@ export class AnalyzeComponent implements OnInit {
 
     const formData = new FormData();
     formData.append('file', this.file!);
-    console.log('Analyse declenchee');
-    console.log('Form valide ?', this.isFormValid());
-    console.log('Fichier a uploader :', this.file?.name);
-    console.log('Domaine selectionne :', this.selectedDomain);
 
     this.apiService.uploadFile(formData).subscribe({
       next: () => {
@@ -117,57 +131,26 @@ export class AnalyzeComponent implements OnInit {
         this.apiService.analyzeFile(payload).subscribe({
           next: (response: any) => {
             this.isLoading = false;
-            console.log('Reponse backend :', response);
-
-            if (this.selectedDomain === 'finance') {
-              this.analysisResult = {
-                roic: response.roic,
-                niveau: response.niveau,
-                commentaire: response.commentaire,
-                interpretation_ia: response.interpretation_ia
-              };
-              this.logisticsResult = null;
-            } else if (this.selectedDomain === 'logistic') {
-              this.logisticsResult = {
-                assignments: response.assignments,
-                makespan: response.makespan,
-                nb_tasks: response.nb_tasks,
-                note: response.note
-              };
-              this.analysisResult = null;
-            }
-
-            this.snackBar.open('Analyse terminee avec succes !', 'Fermer', { duration: 3000 });
-
-            const navigationExtras = {
+            this.snackBar.open('Analyse terminée avec succès !', 'Fermer', { duration: 3000 });
+            this.router.navigate(['/analyze-result'], {
               queryParams: {
                 plugin: this.selectedDomain,
                 interpretation: response.interpretation_ia || ''
               },
-              state: {
-                result: response
-              }
-            };
-
-            this.router.navigate(['/analyze-result'], navigationExtras);
+              state: { result: response }
+            });
           },
-
           error: (err) => {
             this.isLoading = false;
             this.error = 'Erreur pendant l\'analyse.';
             console.error('Erreur analyzeFile :', err);
-            // ✅ Apostrophe échappée correctement
-            this.snackBar.open('Erreur pendant l\'analyse.', 'Fermer', { duration: 3000 });
           }
         });
       },
-
       error: (err) => {
         this.isLoading = false;
         this.error = 'Erreur pendant l\'upload du fichier.';
         console.error('Erreur uploadFile :', err);
-        // ✅ Apostrophe échappée correctement
-        this.snackBar.open('Erreur pendant l\'upload du fichier.', 'Fermer', { duration: 3000 });
       }
     });
   }

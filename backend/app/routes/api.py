@@ -136,6 +136,145 @@ def analyze():
         return jsonify({"error": str(e)}), 500
 
 
+# ✅ Ajouter cette route dans backend/app/routes/api.py
+# Juste après la route /analyze existante
+
+@api_bp.route('/analyze-ticker', methods=['POST'])
+def analyze_ticker():
+    """
+    Analyse une entreprise en temps réel via son ticker yfinance.
+    Body JSON : { "ticker": "AAPL" }
+    """
+    if not request.is_json:
+        return jsonify({"error": "Content-Type must be application/json"}), 415
+
+    try:
+        data   = request.get_json()
+        ticker = data.get('ticker', '').strip().upper()
+
+        if not ticker:
+            return jsonify({"error": "Ticker manquant"}), 400
+
+        print(f"\n=== Analyse ticker : {ticker} ===")
+
+        import yfinance as yf
+        stock = yf.Ticker(ticker)
+        info  = stock.info
+
+        if not info or len(info) < 10:
+            return jsonify({"error": f"Ticker '{ticker}' introuvable ou données insuffisantes"}), 404
+
+        # ── Extraire les données financières ──────────────────────────
+        revenue      = info.get('totalRevenue',      0) or 0
+        net_income   = info.get('netIncomeToCommon',  0) or 0
+        ebitda       = info.get('ebitda',             0) or 0
+        total_assets = info.get('totalAssets',        0) or 0
+        fcf          = info.get('freeCashflow',       0) or 0
+        market_cap   = info.get('marketCap',          0) or 0
+        debt_eq      = info.get('debtToEquity',       0) or 0
+        gross_profit = info.get('grossProfits',       0) or 0
+        op_margins   = info.get('operatingMargins',   0) or 0
+        total_debt   = info.get('totalDebt',          0) or 0
+        book_value   = info.get('bookValue',          0) or 0
+        shares_out   = info.get('sharesOutstanding',  0) or 0
+        sector       = info.get('sector',             'Other')
+        company_name = info.get('longName',           ticker)
+
+        if revenue == 0:
+            return jsonify({"error": f"Données financières insuffisantes pour '{ticker}'"}), 404
+
+        # ── Calcul des indicateurs ────────────────────────────────────
+        ebit         = revenue * op_margins if op_margins else ebitda * 0.85
+        invested_cap = total_debt + (book_value * shares_out) if shares_out else total_debt
+        if invested_cap == 0:
+            invested_cap = market_cap * 0.3
+        if total_assets == 0:
+            total_assets = invested_cap * 1.5
+
+        asset_turnover = revenue / total_assets if total_assets != 0 else 0
+        debt_eq_ratio  = debt_eq / 100 if debt_eq > 10 else debt_eq
+        sga_to_rev     = max(0, (revenue - gross_profit - ebit) / revenue) if revenue != 0 else 0
+
+        # ── Construire le DataFrame pour le modèle ────────────────────
+        sectors_list = [
+            'Consumer Cyclical', 'Consumer Defensive', 'Energy',
+            'Healthcare', 'Industrials', 'Technology'
+        ]
+
+        data_dict = {
+            'EBIT':              [ebit],
+            'Invested Capital':  [invested_cap],
+            'Free Cash Flow':    [fcf],
+            'Asset Turnover':    [asset_turnover],
+            'Debt to Equity':    [debt_eq_ratio],
+            'R&D to Revenue':    [0.0],
+            'SG&A to Revenue':   [sga_to_rev],
+            'Market Cap':        [market_cap],
+        }
+
+        for s in sectors_list:
+            data_dict[f'Sector_{s}'] = [1 if sector == s else 0]
+        data_dict['Sector_Other'] = [0 if sector in sectors_list else 1]
+
+        expected_cols = [
+            'EBIT', 'Invested Capital', 'Free Cash Flow', 'Asset Turnover',
+            'Debt to Equity', 'R&D to Revenue', 'SG&A to Revenue', 'Market Cap',
+            'Sector_Consumer Cyclical', 'Sector_Consumer Defensive',
+            'Sector_Energy', 'Sector_Healthcare',
+            'Sector_Industrials', 'Sector_Other', 'Sector_Technology'
+        ]
+
+        import pandas as pd
+        df_ticker = pd.DataFrame(data_dict, columns=expected_cols)
+
+        # ── Prédiction + SHAP ─────────────────────────────────────────
+        plugin     = load_plugin('finance')
+        prediction = plugin._make_prediction(df_ticker)
+        result     = plugin.interpret(prediction, df_ticker)
+
+        # ── Infos complémentaires sur l'entreprise ────────────────────
+        result['company'] = {
+            'ticker':       ticker,
+            'name':         company_name,
+            'sector':       sector,
+            'market_cap':   market_cap,
+            'current_price': info.get('currentPrice', 0),
+            'currency':     info.get('currency', 'USD'),
+            'country':      info.get('country', ''),
+        }
+        result['financials'] = {
+            'revenue':       revenue,
+            'net_income':    net_income,
+            'ebit':          ebit,
+            'fcf':           fcf,
+            'market_cap':    market_cap,
+            'debt_equity':   debt_eq_ratio,
+            'asset_turnover': asset_turnover,
+        }
+
+        result = sanitize_for_json(result)
+
+        # ── Sauvegarder en base ───────────────────────────────────────
+        user_id  = get_current_user_id()
+        analysis = Analysis(
+            user_id     = user_id,
+            domain      = 'finance',
+            plugin_name = 'finance',
+            filename    = ticker,
+            result_json = result
+        )
+        db.session.add(analysis)
+        db.session.commit()
+        result['analysis_id'] = analysis.id
+
+        print(f"Analyse ticker {ticker} terminée (ROIC={result['roic']})")
+        return jsonify(result)
+
+    except Exception as e:
+        print(f"Erreur analyze-ticker: {str(e)}")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 @api_bp.route('/simulate', methods=['POST'])
 def simulate():
     print("Entree dans /simulate")
