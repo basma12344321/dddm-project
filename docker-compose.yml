@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # 1. La Base de Données
+  db:
+    image: postgres:15-alpine
+    container_name: dddm_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: dddm1234
+      POSTGRES_DB: dddm_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # 2. Le Backend Flask
+  backend:
+    build: 
+      context: ./backend
+    container_name: dddm_backend
+    restart: always
+    environment:
+      # On remplace 'localhost' par 'db' pour que Flask trouve le conteneur PostgreSQL
+      - DATABASE_URL=postgresql://postgres:dddm1234@db:5432/dddm_db
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    volumes:
+      - ./backend/data:/app/data # Garde tes fichiers CSV uploadés synchronisés
+
+  # 3. Le Frontend Angular
+  frontend:
+    build:
+      context: ./dashboard_sandbox
+    container_name: dddm_frontend
+    restart: always
+    ports:
+      - "4200:4200"
+    depends_on:
+      - backend
+
+# Le volume pour ne pas perdre les données de la base quand on éteint Docker
+volumes:
+  postgres_data:
