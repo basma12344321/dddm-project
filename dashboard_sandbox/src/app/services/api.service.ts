@@ -5,7 +5,7 @@ import { tap, catchError } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
-  private apiUrl = 'http://127.0.0.1:5000'; // Adresse de ton back-end Flask
+  private apiUrl = 'http://localhost:5000'; // Adresse de ton back-end Flask
 
   constructor(private http: HttpClient) {}
 
