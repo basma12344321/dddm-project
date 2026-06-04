@@ -1,0 +1,22 @@
+# =========================================
+# BACKEND (Python / Flask)
+# =========================================
+backend/venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+
+# =========================================
+# FRONTEND (Angular / Node.js)
+# =========================================
+dashboard_sandbox/node_modules/
+dashboard_sandbox/dist/
+dashboard_sandbox/.angular/
+
+# =========================================
+# FICHIERS SYSTÈME ET ÉDITEUR (VS Code, etc.)
+# =========================================
+.vscode/
+.DS_Store
+Thumbs.db

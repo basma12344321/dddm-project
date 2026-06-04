@@ -100,19 +100,23 @@ form button[mat-raised-button]:disabled {
 }
 
 /* Section des résultats */
-div[*ngIf="result"] {
+.result-block,
+.results-section {
   width: 100%;
-  max-width: 600px;
+  max-width: 100%; /* <-- La correction est ici (on remplace 600px par 100%) */
+  box-sizing: border-box; /* Empêche les marges de faire déborder la boîte */
   padding: 1.5rem;
   background: linear-gradient(135deg, #f8f9fa 0%, #fff5f5 50%, #f8f9fa 100%);
   border-radius: 12px;
   border: 1px solid rgba(255, 71, 87, 0.1);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   animation: fadeInUp 0.5s ease-out;
+  margin-top: 20px; /* Un peu d'espace entre le bouton et les résultats */
 }
 
 /* Titre des résultats */
-div[*ngIf="result"] h3 {
+.result-block h3,
+.results-section h3 {
   color: #343a40;
   font-weight: 600;
   margin-bottom: 1.5rem;
@@ -121,7 +125,8 @@ div[*ngIf="result"] h3 {
 }
 
 /* Paragraphes de résultats */
-div[*ngIf="result"] p {
+.result-block p,
+.results-section p {
   margin: 0.5rem 0;
   color: #6c757d;
   line-height: 1.5;
@@ -132,13 +137,15 @@ div[*ngIf="result"] p {
   transition: all 0.3s ease;
 }
 
-div[*ngIf="result"] p:hover {
+.result-block p:hover,
+.results-section p:hover {
   background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
   transform: translateX(4px);
   box-shadow: 0 2px 8px rgba(255, 71, 87, 0.1);
 }
 
-div[*ngIf="result"] strong {
+.result-block strong,
+.results-section strong {
   color: #343a40;
   font-weight: 600;
 }
@@ -161,7 +168,7 @@ div[*ngIf="result"] strong {
     padding: 1rem;
   }
   
-  form, div[*ngIf="result"] {
+  form, .result-block, .results-section {
     max-width: 100%;
     padding: 1.5rem;
   }
@@ -185,7 +192,7 @@ div[*ngIf="result"] strong {
     padding: 0.5rem;
   }
   
-  form, div[*ngIf="result"] {
+  form, .result-block, .results-section {
     padding: 1rem;
   }
   
@@ -193,8 +200,244 @@ div[*ngIf="result"] strong {
     font-size: 1.3rem;
   }
   
-  div[*ngIf="result"] p {
+  .result-block p,
+  .results-section p {
     font-size: 0.9rem;
     padding: 0.5rem;
   }
+}
+
+
+/* =========================================
+   STYLE DE LA CONFIGURATION (LOGISTIQUE)
+   ========================================= */
+
+/* Le conteneur (Label + Sélecteur) pour éviter qu'ils ne se chevauchent */
+.config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* Donne de l'air entre le texte et la boîte */
+  width: 100%;
+}
+
+.config-item label {
+  font-weight: 600;
+  color: #343a40;
+  font-size: 0.95rem;
+}
+
+/* Le sélecteur de règles ultra-moderne */
+.rule-select {
+  /* 1. On efface le vieux style moche de Windows/Chrome */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  
+  /* 2. Dimensions et respiration */
+  width: 100%;
+  max-width: 500px;
+  padding: 12px 40px 12px 16px; /* Plus d'espace à droite pour notre nouvelle flèche */
+  font-size: 14px;
+  font-family: inherit;
+  
+  /* 3. Couleurs et bordures assorties à ton thème */
+  color: #333;
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+  transition: all 0.3s ease;
+
+  /* 4. La magie : une belle flèche personnalisée (en SVG) encodée directement */
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23343a40%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px top 50%;
+  background-size: 12px auto;
+}
+
+/* Animation et couleur quand on passe la souris dessus */
+.rule-select:hover {
+  border-color: #ff6b7a;
+  box-shadow: 0 4px 12px rgba(255, 71, 87, 0.1);
+  transform: translateY(-1px);
+}
+
+/* L'effet "Glow" (Halo lumineux) quand on clique pour ouvrir la liste */
+.rule-select:focus {
+  outline: none;
+  border-color: #ff4757;
+  box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.2);
+}
+
+/* Ajustement de la ligne de configuration pour bien aligner le slider et le sélecteur */
+.config-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 30px;
+  margin-bottom: 25px;
+}
+
+/* =========================================
+   OPTIONS AVANCÉES (RECUIT SIMULÉ)
+   ========================================= */
+
+/* On transforme la balise details en une belle boîte */
+.sa-config details {
+  background: #ffffff;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+/* Le titre cliquable (Summary) */
+.sa-config summary {
+  padding: 12px 16px;
+  font-weight: 600;
+  color: #343a40;
+  cursor: pointer;
+  background: #f8f9fa;
+  list-style: none; /* Cache la flèche native moche sur Firefox */
+  user-select: none;
+  transition: background 0.3s ease;
+}
+
+/* Cache la flèche native moche sur Chrome/Safari */
+.sa-config summary::-webkit-details-marker {
+  display: none;
+}
+
+/* On crée notre propre petite flèche animée */
+.sa-config summary::before {
+  content: '▶';
+  display: inline-block;
+  margin-right: 10px;
+  font-size: 0.8em;
+  color: #ff4757;
+  transition: transform 0.3s ease;
+}
+
+/* Quand on ouvre, la flèche tourne et une ligne de séparation apparaît */
+.sa-config details[open] summary::before {
+  transform: rotate(90deg);
+}
+.sa-config details[open] summary {
+  border-bottom: 1px solid #ced4da;
+}
+
+/* La zone avec les 3 cases de chiffres */
+.sa-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  padding: 15px;
+  background: #fafafa;
+}
+
+.sa-field {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sa-field label {
+  font-size: 0.85rem;
+  color: #555;
+  font-weight: 600;
+}
+
+/* =========================================
+   TABLEAU DES TÂCHES
+   ========================================= */
+
+/* La boîte qui entoure le tableau */
+.tasks-table {
+  width: 100%;
+  overflow-x: auto;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+  margin-bottom: 20px;
+}
+
+.tasks-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* En-têtes du tableau */
+.tasks-table th {
+  background: #f8f9fa;
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: 600;
+  color: #343a40;
+  border-bottom: 2px solid #ced4da;
+  font-size: 0.95rem;
+}
+
+/* Cellules du tableau */
+.tasks-table td {
+  padding: 10px 15px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+/* Style partagé pour toutes les cases de texte et de nombres */
+.task-input,
+.duration-input,
+.deadline-input,
+.sa-field input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #333;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+  background-color: #fff;
+}
+
+/* L'effet lumineux quand on clique dans une case */
+.task-input:focus,
+.duration-input:focus,
+.deadline-input:focus,
+.sa-field input:focus {
+  outline: none;
+  border-color: #ff4757;
+  box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.2);
+}
+
+/* Le sélecteur de priorité (la même magie que la règle SPT) */
+.priority-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 100%;
+  padding: 8px 30px 8px 12px;
+  font-size: 14px;
+  color: #333;
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  /* Flèche SVG encodée */
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23343a40%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px top 50%;
+  background-size: 10px auto;
+}
+
+.priority-select:focus {
+  outline: none;
+  border-color: #ff4757;
+  box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.2);
 }

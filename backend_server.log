@@ -1,0 +1,23 @@
+UPLOAD_FOLDER = C:\Users\HP\Desktop\dddm_project_v2\dddm-project\backend\data
+Tables PostgreSQL créées avec succès !
+Routes enregistrées :
+/static/<path:filename>
+/upload
+/analyze
+/analyze-ticker
+/simulate
+/analyses
+/analyses/<int:analysis_id>
+/schedule
+/schedule/rules
+/schedule/history
+/schedule/compare/<int:session_id_1>/<int:session_id_2>
+/schedule/simulate
+/dashboard-data
+/
+/auth/register
+/auth/login
+/auth/me
+/auth/users
+ * Serving Flask app 'main'
+ * Debug mode: on

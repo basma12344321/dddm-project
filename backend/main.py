@@ -20,7 +20,10 @@ load_dotenv(os.path.join(Path(__file__).parent.parent, '.env'))
 from app.routes.api import api_bp
 from app.routes.auth import auth_bp
 from app.extensions import db
-from app.models import User, Analysis, Simulation
+from app.models import (
+    User, Analysis, Simulation,
+    SchedulingSession, SchedulingResult, SchedulingSimulation
+)
 from config import Config
 
 

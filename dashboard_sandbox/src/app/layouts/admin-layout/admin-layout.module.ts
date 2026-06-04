@@ -22,6 +22,8 @@ import { AnalyzeResultComponent } from '../../analyze-result/analyze-result.comp
 import { SimulationComponent } from '../../simulation/simulation.component';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { GanttChartComponent } from '../../components/gantt-chart/gantt-chart.component';
+import { LogisticsDashboardComponent } from '../../components/logistics-dashboard/logistics-dashboard.component';
 //import { HomeComponent } from '../../home/home.component';
 import { MatDividerModule } from '@angular/material/divider';
 
@@ -43,7 +45,9 @@ import { NgApexchartsModule } from "ng-apexcharts";
     MatCardModule,     
     MatIconModule,
     NgApexchartsModule,
-    MatDividerModule
+    MatDividerModule,
+    GanttChartComponent,
+    LogisticsDashboardComponent
   ],
   declarations: [
     //DashboardComponent,

@@ -3,6 +3,9 @@ import joblib
 import pandas as pd
 import numpy as np
 import os
+import sys
+from unittest.mock import MagicMock
+sys.modules['torch'] = MagicMock()
 import shap
 from typing import Union, Dict
 from app.llm_utils import generate_interpretation

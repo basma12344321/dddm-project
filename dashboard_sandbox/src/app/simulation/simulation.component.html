@@ -3,52 +3,160 @@
 
     <h2 class="simulation-title">Simulation : {{ plugin | titlecase }}</h2>
 
-    <form [formGroup]="simulationForm" (ngSubmit)="onSubmit()" class="simulation-form">
-      <!-- Finance -->
-      <div *ngIf="plugin === 'finance'">
-        <mat-form-field appearance="fill" class="full-width">
-          <mat-label>Revenue</mat-label>
-          <input matInput type="number" formControlName="revenue">
-        </mat-form-field>
+    <!-- LOGISTIQUE - Nouveau formulaire -->
+    <div *ngIf="plugin === 'logistic'" class="logistic-form">
 
-        <mat-form-field appearance="fill" class="full-width">
-          <mat-label>R&D to Revenue</mat-label>
-          <input matInput type="number" formControlName="r_and_d">
-        </mat-form-field>
+      <!-- Paramètres de configuration -->
+      <div class="config-section">
+        <h3>Configuration du Scheduling</h3>
 
-        <mat-form-field appearance="fill" class="full-width">
-          <mat-label>SG&A to Revenue</mat-label>
-          <input matInput type="number" formControlName="sga">
-        </mat-form-field>
-      </div>
+        <div class="config-row">
+          <div class="config-item">
+            <label>Nombre de machines</label>
+            <div class="slider-container">
+              <input type="range" min="1" max="10" [value]="numMachines" (input)="onMachinesChange($event)">
+              <span class="slider-value">{{numMachines}}</span>
+            </div>
+          </div>
 
-      <!-- Logistique -->
-      <div *ngIf="plugin === 'logistic'">
-        <h3>Modifier les tâches</h3>
-        <div *ngFor="let task of tasks; let i = index" class="task-row">
-          <mat-form-field appearance="fill">
-            <mat-label>Durée (Tâche {{ i }})</mat-label>
-            <input matInput type="number" [(ngModel)]="task.Duration" name="duration{{i}}">
-          </mat-form-field>
+          <div class="config-item">
+            <label>Règle heuristique</label>
+            <select class="rule-select" [value]="selectedRule" (change)="onRuleChange($event)">
+              <option *ngFor="let rule of rules" [value]="rule.name">
+                {{rule.name}} - {{rule.description}}
+              </option>
+            </select>
+          </div>
 
-          <mat-form-field appearance="fill">
-            <mat-label>Deadline</mat-label>
-            <input matInput type="number" [(ngModel)]="task.Deadline" name="deadline{{i}}">
-          </mat-form-field>
+          <div class="config-item">
+            <label class="checkbox-label">
+              <input type="checkbox" [checked]="enableSA" (change)="toggleSA()">
+              Activer Recuit Simulé
+            </label>
+          </div>
+        </div>
+
+        <!-- Configuration SA détaillée (optionnelle) -->
+        <div class="sa-config" *ngIf="enableSA">
+          <details>
+            <summary>Options avancées (Recuit Simulé)</summary>
+            <div class="sa-fields">
+              <div class="sa-field">
+                <label>Température initiale</label>
+                <input type="number" [(ngModel)]="saConfig.initial_temp" min="100" max="5000">
+              </div>
+              <div class="sa-field">
+                <label>Taux de refroidissement</label>
+                <input type="number" [(ngModel)]="saConfig.cooling_rate" min="0.9" max="0.999" step="0.001">
+              </div>
+              <div class="sa-field">
+                <label>Itérations max</label>
+                <input type="number" [(ngModel)]="saConfig.max_iterations" min="100" max="10000">
+              </div>
+            </div>
+          </details>
         </div>
       </div>
 
+      <!-- Liste des tâches -->
+      <div class="tasks-section">
+        <div class="tasks-header">
+          <h3>Tâches à ordonnancer ({{tasks.length}})</h3>
+          <button mat-raised-button color="primary" (click)="addTask()" class="add-task-btn">
+            + Ajouter tâche
+          </button>
+        </div>
 
-      <button mat-raised-button color="accent" class="analyze-button" [disabled]="isLoading">
-        {{ isLoading ? 'Simulation en cours...' : 'Lancer la simulation' }}
+        <div class="tasks-table">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Tâche</th>
+                <th>Durée</th>
+                <th>Deadline</th>
+                <th>Priorité</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let task of tasks; let i = index">
+                <td>{{i}}</td>
+                <td>
+                  <input type="text" [(ngModel)]="task.Task" class="task-input">
+                </td>
+                <td>
+                  <input type="number" [(ngModel)]="task.Duration" min="1" class="duration-input">
+                </td>
+                <td>
+                  <input type="number" [(ngModel)]="task.Deadline" min="1" class="deadline-input">
+                </td>
+                <td>
+                  <select [(ngModel)]="task.Priority" class="priority-select">
+                    <option [value]="1">1 - Basse</option>
+                    <option [value]="2">2 - Moyenne</option>
+                    <option [value]="3">3 - Haute</option>
+                  </select>
+                </td>
+                <td>
+                  <button mat-icon-button color="warn" (click)="removeTask(i)" [disabled]="tasks.length <= 1">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Bouton de soumission -->
+      <button mat-raised-button color="accent" class="analyze-button" (click)="onSubmit()" [disabled]="isLoading">
+        <mat-icon>play_arrow</mat-icon>
+        {{ isLoading ? 'Calcul en cours...' : 'Lancer l\'ordonnancement' }}
       </button>
-    </form>
 
-    <div *ngIf="result" class="result-block">
-      <h3>Résultat de la simulation</h3>
-      <p><strong>ROIC :</strong> {{ result.roic * 100 | number:'1.1-1' }}%</p>
-      <p><strong>Niveau :</strong> {{ result.niveau }}</p>
-      <p><strong>Commentaire :</strong> {{ result.commentaire }}</p>
+      <!-- Erreur -->
+      <div *ngIf="error" class="error-message">
+        <mat-icon>error</mat-icon> {{error}}
+      </div>
+
+      <!-- Résultats -->
+      <div *ngIf="result && !isLoading" class="results-section">
+
+        <!-- Graphique Gantt -->
+        <div class="gantt-section">
+          <h3>Diagramme de Gantt</h3>
+          <app-gantt-chart
+            [tasks]="ganttTasks"
+            [makespan]="metrics?.makespan || 0"
+          ></app-gantt-chart>
+        </div>
+
+        <!-- Dashboard Métriques -->
+        <div class="dashboard-section">
+          <app-logistics-dashboard
+            [metrics]="metrics"
+            [convergenceData]="convergenceData"
+            [optimizationGain]="optimizationGain"
+            [interpretation]="interpretation"
+            [executionTimeMs]="executionTimeMs"
+          ></app-logistics-dashboard>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- FINANCE - Ancien formulaire -->
+    <div *ngIf="plugin === 'finance'" class="finance-form">
+
+      <div *ngIf="result" class="result-block">
+        <h3>Résultat de la simulation</h3>
+        <p><strong>ROIC :</strong> {{ result.roic * 100 | number:'1.1-1' }}%</p>
+        <p><strong>Niveau :</strong> {{ result.niveau }}</p>
+        <p><strong>Commentaire :</strong> {{ result.commentaire }}</p>
+      </div>
+
     </div>
 
   </mat-card>

@@ -9,7 +9,7 @@ import traceback
 
 from app.core_engine.core_engine import clean_data
 from app.core_engine.plugin_loader import load_plugin
-from app.models import db, Analysis, Simulation
+from app.models import db, Analysis, Simulation, SchedulingSession, SchedulingResult, SchedulingSimulation
 
 api_bp = Blueprint('api', __name__)
 
@@ -158,7 +158,25 @@ def analyze_ticker():
         print(f"\n=== Analyse ticker : {ticker} ===")
 
         import yfinance as yf
-        stock = yf.Ticker(ticker)
+        import requests
+
+        # 1. Création d'une session ultra-déguisée (Firefox)
+        session = requests.Session()
+        session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1'
+        })
+
+        # 2. On passe la session à yfinance
+        stock = yf.Ticker(ticker, session=session)
         info  = stock.info
 
         if not info or len(info) < 10:
@@ -346,20 +364,239 @@ def get_analysis(analysis_id):
 
 @api_bp.route("/schedule", methods=["POST"])
 def schedule():
-    data        = request.get_json()
-    plugin_name = data.get("plugin")
-    scenario    = data.get("scenario")
+    """
+    Endpoint principal d'ordonnancement logistique.
+    Paramètres:
+    - tasks: list de tâches (Task, Duration, Deadline, Priority, Dependencies, SetupTime, MachineConstraint)
+    - num_machines: nombre de machines (default: 3)
+    - rule: règle heuristique (SPT, EDD, LPT, WSPT)
+    - sa_config: config du recuit simulé
+    - enable_sa: bool pour activer SA (default: true)
+    """
+    data = request.get_json()
 
-    if not plugin_name or not scenario:
-        return jsonify({"error": "Missing plugin or scenario"}), 400
+    if not data:
+        return jsonify({"error": "Données JSON manquantes"}), 400
 
-    plugin = load_plugin(plugin_name)
+    # Extraire les paramètres
+    tasks = data.get('tasks', [])
+    num_machines = data.get('num_machines', 3)
+    rule = data.get('rule', 'EDD')
+    sa_config = data.get('sa_config')
+    enable_sa = data.get('enable_sa', True)
+
+    if not tasks:
+        return jsonify({"error": "Aucune tâche fournie"}), 400
+
+    if rule not in ['SPT', 'EDD', 'LPT', 'WSPT']:
+        return jsonify({"error": f"Règle invalide: {rule}. Options: SPT, EDD, LPT, WSPT"}), 400
 
     try:
-        result      = plugin.schedule(scenario)
-        interpreted = plugin.interpret(result)
-        interpreted = sanitize_for_json(interpreted)
-        return jsonify(interpreted)
+        # Convertir en DataFrame
+        df = pd.DataFrame(tasks)
+
+        # Utiliser le plugin logistique
+        plugin = load_plugin('logistic')
+
+        # Appeler le moteur d'ordonnancement
+        from app.core_engine.scheduling_engine import load_scheduling_engine
+        engine = load_scheduling_engine()
+
+        result = engine.schedule(
+            data=df,
+            num_machines=num_machines,
+            rule=rule,
+            sa_config=sa_config,
+            enable_sa=enable_sa
+        )
+
+        # Sauvegarder en base de données
+        user_id = get_current_user_id()
+
+        from app.models import SchedulingSession, SchedulingResult
+
+        session = SchedulingSession(
+            user_id=user_id,
+            num_tasks=len(tasks),
+            num_machines=num_machines,
+            rule_used=rule,
+            execution_time_ms=result.execution_time_ms,
+            status=result.status
+        )
+        db.session.add(session)
+        db.session.flush()  # Pour avoir l'ID
+
+        sched_result = SchedulingResult(
+            session_id=session.id,
+            gantt_data=result.gantt_data,
+            metrics=result.metrics,
+            interpretation=result.interpretation,
+            convergence_data=result.convergence_data
+        )
+        db.session.add(sched_result)
+        db.session.commit()
+
+        # Construire la réponse
+        response = {
+            "status": result.status,
+            "execution_time_ms": result.execution_time_ms,
+            "gantt_data": result.gantt_data,
+            "metrics": result.metrics,
+            "optimization_gain": result.optimization_gain,
+            "convergence_data": result.convergence_data,
+            "interpretation": result.interpretation,
+            "session_id": session.id
+        }
+
+        if result.status == "error":
+            response["error"] = result.error_message
+
+        return jsonify(sanitize_for_json(response)), 200
+
+    except Exception as e:
+        print(f"Erreur schedule: {str(e)}")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/schedule/rules", methods=["GET"])
+def schedule_rules():
+    """
+    Liste les règles heuristiques disponibles.
+    """
+    from app.core_engine.scheduling_engine import SchedulingEngine
+
+    rules = []
+    for name, description in SchedulingEngine.HEURISTIC_RULES.items():
+        rules.append({
+            "name": name,
+            "description": description
+        })
+
+    return jsonify({
+        "rules": rules,
+        "default": "EDD"
+    }), 200
+
+
+@api_bp.route("/schedule/history", methods=["GET"])
+def schedule_history():
+    """
+    Retourne l'historique des ordonnancements.
+    """
+    try:
+        from app.models import SchedulingSession, SchedulingResult
+
+        user_id = get_current_user_id()
+
+        if user_id:
+            sessions = SchedulingSession.query.filter_by(user_id=user_id).order_by(
+                SchedulingSession.created_at.desc()
+            ).limit(20).all()
+        else:
+            sessions = SchedulingSession.query.order_by(
+                SchedulingSession.created_at.desc()
+            ).limit(20).all()
+
+        result = []
+        for s in sessions:
+            result.append({
+                "id": s.id,
+                "created_at": s.created_at.isoformat(),
+                "num_tasks": s.num_tasks,
+                "num_machines": s.num_machines,
+                "rule_used": s.rule_used,
+                "execution_time_ms": s.execution_time_ms,
+                "status": s.status
+            })
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/schedule/compare/<int:session_id_1>/<int:session_id_2>", methods=["GET"])
+def schedule_compare(session_id_1, session_id_2):
+    """
+    Compare deux sessions d'ordonnancement.
+    """
+    try:
+        from app.models import SchedulingSession, SchedulingResult
+
+        session1 = SchedulingSession.query.get(session_id_1)
+        session2 = SchedulingSession.query.get(session_id_2)
+
+        if not session1 or not session2:
+            return jsonify({"error": "Session non trouvée"}), 404
+
+        result1 = SchedulingResult.query.filter_by(session_id=session_id_1).first()
+        result2 = SchedulingResult.query.filter_by(session_id=session_id_2).first()
+
+        if not result1 or not result2:
+            return jsonify({"error": "Résultat non trouvé"}), 404
+
+        # Calculer les différences
+        m1 = result1.metrics or {}
+        m2 = result2.metrics or {}
+
+        diff = {
+            "makespan_diff": m1.get('makespan', 0) - m2.get('makespan', 0),
+            "balance_diff": m1.get('balance_index', 0) - m2.get('balance_index', 0),
+            "on_time_rate_diff": m1.get('on_time_rate', 0) - m2.get('on_time_rate', 0),
+            "total_tardiness_diff": m1.get('total_tardiness', 0) - m2.get('total_tardiness', 0)
+        }
+
+        return jsonify({
+            "session1": {
+                "id": session_id_1,
+                "metrics": m1,
+                "rule": session1.rule_used
+            },
+            "session2": {
+                "id": session_id_2,
+                "metrics": m2,
+                "rule": session2.rule_used
+            },
+            "diff": diff
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/schedule/simulate", methods=["POST"])
+def schedule_simulate():
+    """
+    Simulation what-if pour le scheduling.
+    """
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "Données JSON manquantes"}), 400
+
+    try:
+        plugin = load_plugin('logistic')
+
+        # Appeler simulate avec les paramètres
+        result = plugin.simulate(data)
+
+        # Sauvegarder en base
+        from app.models import SchedulingSimulation, SchedulingSession
+
+        session_id = data.get('session_id')
+
+        simulation = SchedulingSimulation(
+            session_id=session_id,
+            scenario_params=data,
+            result_json=result,
+            diff_metrics=result.get('diff_metrics')
+        )
+        db.session.add(simulation)
+        db.session.commit()
+
+        return jsonify(sanitize_for_json(result)), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
