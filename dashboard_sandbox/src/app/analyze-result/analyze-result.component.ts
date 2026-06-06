@@ -131,6 +131,30 @@ export class AnalyzeResultComponent implements OnInit {
       .replace(/^\d+\. /, (match) => `<strong>${match}</strong>`);
   }
 
+  exportPdf(): void {
+    const payload = {
+      roic: this.rawResult.roic,
+      niveau: this.rawResult.niveau,
+      commentaire: this.rawResult.commentaire,
+      interpretation_ia: this.interpretationIa,
+      shap: this.rawResult.shap || {}
+    };
+
+    this.http.post('http://127.0.0.1:5000/export-pdf', payload, {
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `rapport_finance_${new Date().toISOString().slice(0,10)}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => console.error('Erreur export PDF:', err)
+    });
+  }
+
   goToSimulation(): void {
     this.router.navigate(['/simulation'], {
       queryParams: { plugin: this.plugin },

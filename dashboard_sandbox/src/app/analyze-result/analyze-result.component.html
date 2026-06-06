@@ -76,6 +76,12 @@
         </div>
       </div>
 
+      <div class="export-section" *ngIf="plugin === 'finance'">
+        <button class="btn-export" (click)="exportPdf()">
+          ⬇ Télécharger le rapport PDF
+        </button>
+      </div>
+
       <!-- Légende -->
       <div class="shap-legend">
         <span class="legend-item positif"><span class="dot"></span> Augmente le ROIC</span>

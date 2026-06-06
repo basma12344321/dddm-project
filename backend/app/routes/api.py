@@ -9,6 +9,15 @@ import traceback
 import time
 import random
 from functools import lru_cache
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from io import BytesIO
+import datetime
+
 
 from app.core_engine.core_engine import clean_data
 from app.core_engine.plugin_loader import load_plugin
@@ -699,6 +708,110 @@ def dashboard_data():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+
+@api_bp.route('/export-pdf', methods=['POST'])
+def export_pdf():
+    try:
+        data = request.get_json()
+        roic = data.get('roic', 0)
+        niveau = data.get('niveau', '')
+        commentaire = data.get('commentaire', '')
+        interpretation_ia = data.get('interpretation_ia', '')
+        shap_data = data.get('shap', {})
+        ticker = data.get('ticker', 'Entreprise analysée')
+
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4,
+                                rightMargin=2*cm, leftMargin=2*cm,
+                                topMargin=2*cm, bottomMargin=2*cm)
+
+        styles = getSampleStyleSheet()
+        elements = []
+
+        # Titre
+        title_style = ParagraphStyle('title', parent=styles['Title'],
+                                     fontSize=20, textColor=colors.HexColor('#ff4757'),
+                                     spaceAfter=6, alignment=TA_CENTER)
+        elements.append(Paragraph("SmartDecide — Rapport d'Analyse Financière", title_style))
+
+        # Date
+        date_style = ParagraphStyle('date', parent=styles['Normal'],
+                                    fontSize=9, textColor=colors.grey, alignment=TA_CENTER)
+        elements.append(Paragraph(datetime.datetime.now().strftime("%d/%m/%Y %H:%M"), date_style))
+        elements.append(Spacer(1, 0.5*cm))
+        elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#ff4757')))
+        elements.append(Spacer(1, 0.5*cm))
+
+        # Résumé ROIC
+        section_style = ParagraphStyle('section', parent=styles['Heading2'],
+                                       fontSize=13, textColor=colors.HexColor('#ff4757'),
+                                       spaceBefore=12, spaceAfter=6)
+        normal_style = ParagraphStyle('normal', parent=styles['Normal'],
+                                      fontSize=10, leading=16, spaceAfter=4)
+
+        elements.append(Paragraph("Résultat de l'analyse", section_style))
+
+        roic_color = '#27ae60' if niveau == 'elevee' else ('#f39c12' if niveau == 'moyenne' else '#e74c3c')
+        table_data = [
+            ['Indicateur', 'Valeur'],
+            ['ROIC prédit', f"{roic*100:.2f}%"],
+            ['Niveau de rentabilité', niveau.capitalize()],
+            ['Commentaire', commentaire],
+        ]
+        table = Table(table_data, colWidths=[6*cm, 11*cm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#ff4757')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#fff5f5')),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fff5f5')]),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#ffcccc')),
+            ('PADDING', (0, 0), (-1, -1), 8),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        elements.append(table)
+        elements.append(Spacer(1, 0.5*cm))
+
+        # SHAP
+        if shap_data.get('top_features'):
+            elements.append(Paragraph("Facteurs clés (SHAP)", section_style))
+            shap_table_data = [['Facteur', 'Impact', 'Direction']]
+            for f in shap_data['top_features']:
+                direction = '↑ Augmente' if f['impact'] == 'positif' else '↓ Diminue'
+                shap_table_data.append([f['feature'], f"{f['shap_value']:+.4f}", direction])
+            shap_table = Table(shap_table_data, colWidths=[7*cm, 4*cm, 6*cm])
+            shap_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#ff4757')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fff5f5')]),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#ffcccc')),
+                ('PADDING', (0, 0), (-1, -1), 7),
+            ]))
+            elements.append(shap_table)
+            elements.append(Spacer(1, 0.5*cm))
+
+        # Rapport LLM
+        if interpretation_ia:
+            elements.append(Paragraph("Analyse IA — Rapport narratif", section_style))
+            for line in interpretation_ia.split('\n'):
+                if line.strip():
+                    clean = line.replace('**', '').replace('* ', '• ')
+                    elements.append(Paragraph(clean, normal_style))
+
+        doc.build(elements)
+        buffer.seek(0)
+
+        from flask import send_file
+        return send_file(buffer, mimetype='application/pdf',
+                         as_attachment=True,
+                         download_name=f'rapport_finance_{datetime.datetime.now().strftime("%Y%m%d_%H%M")}.pdf')
+
+    except Exception as e:
+        print(f"Erreur export PDF: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/', methods=['GET'])
 def home():
