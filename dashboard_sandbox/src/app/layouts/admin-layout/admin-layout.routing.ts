@@ -11,6 +11,7 @@ import { Routes } from '@angular/router';
 import { AnalyzeComponent } from '../../analyze/analyze.component';
 import { SimulationComponent } from '../../simulation/simulation.component'; // adapte le chemin si nécessaire
 import { AnalyzeResultComponent } from '../../analyze-result/analyze-result.component';
+import { HistoriqueComponent } from '../../historique/historique.component';
 import { HomeComponent } from '../../home/home.component';
 export const AdminLayoutRoutes: Routes = [
    
@@ -25,4 +26,5 @@ export const AdminLayoutRoutes: Routes = [
     { path: 'simulation', component: SimulationComponent },
     { path: 'analyze-result', component: AnalyzeResultComponent },
     { path: 'home', component: HomeComponent },
+    { path: 'historique', component: HistoriqueComponent }
 ];

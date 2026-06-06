@@ -8,8 +8,6 @@ import { ComponentsModule } from './components/components.module';
 import { AppComponent } from './app.component';
 import { AdminLayoutComponent } from './layouts/admin-layout/admin-layout.component';
 
-
-// Modules Material
 import { MatCardModule } from '@angular/material/card';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -21,16 +19,14 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { CommonModule } from '@angular/common';
 import { NgApexchartsModule } from "ng-apexcharts";
-// Pipe
-
 
 import { FileSizePipe } from './shared/pipes/file-size.pipe';
-
 
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { HomeComponent } from './home/home.component';
 import { LoginComponent } from './login/login.component';
 import { RegisterComponent } from './register/register.component';
+// ❌ Supprimé : import { HistoriqueComponent } from './historique/historique.component';
 
 @NgModule({
   imports: [
@@ -42,8 +38,6 @@ import { RegisterComponent } from './register/register.component';
     ComponentsModule,
     RouterModule,
     AppRoutingModule,
-    
-    // Modules Material
     MatCardModule,
     MatSelectModule,
     MatFormFieldModule,
@@ -59,15 +53,11 @@ import { RegisterComponent } from './register/register.component';
   declarations: [
     AppComponent,
     AdminLayoutComponent,
-   
     FileSizePipe,
     HomeComponent,
     LoginComponent,
     RegisterComponent,
-    
- 
-   
-    
+    // ❌ Supprimé : HistoriqueComponent,
   ],
   providers: [],
   bootstrap: [AppComponent]

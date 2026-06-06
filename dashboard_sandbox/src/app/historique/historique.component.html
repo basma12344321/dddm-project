@@ -1,0 +1,24 @@
+<div class="historique-wrapper">
+  <div class="historique-header">
+    <h2>Historique des analyses</h2>
+    <span class="count-badge">{{ analyses.length }} analyses</span>
+  </div>
+
+  <div class="loading" *ngIf="loading">Chargement...</div>
+
+  <div class="analyses-grid" *ngIf="!loading">
+    <div class="analyse-card" *ngFor="let a of analyses">
+      <div class="card-top">
+        <div class="filename">{{ a.filename }}</div>
+        <span class="badge" [ngClass]="getNiveauClass(a.result?.niveau)">
+          {{ a.result?.niveau | titlecase }}
+        </span>
+      </div>
+      <div class="roic-value">ROIC : {{ (a.result?.roic * 100).toFixed(2) }}%</div>
+      <div class="card-meta">
+        <span>{{ a.plugin_name | titlecase }}</span>
+        <span>{{ formatDate(a.created_at) }}</span>
+      </div>
+    </div>
+  </div>
+</div>

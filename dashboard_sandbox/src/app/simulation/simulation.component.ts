@@ -82,6 +82,7 @@ export class SimulationComponent implements OnInit {
   optimizationGain: OptimizationGain | null = null;
   interpretation: InterpretationData | null = null;
   executionTimeMs: number = 0;
+  interpretationIa: string = '';
 
   constructor(
     private route: ActivatedRoute,
@@ -145,6 +146,33 @@ export class SimulationComponent implements OnInit {
     }
   }
 
+  exportPdfLogistic(): void {
+    const payload = {
+      metrics:          this.metrics,
+      interpretation:   this.interpretation,
+      interpretation_ia: this.result?.interpretation_ia || '',
+      optimization_gain: this.optimizationGain,
+      gantt_data:       this.ganttTasks,
+      num_tasks:        this.tasks.length,
+      num_machines:     this.numMachines,
+      rule:             this.selectedRule
+    };
+
+    this.http.post('http://localhost:5000/export-pdf-logistic', payload, {
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `rapport_logistique_${new Date().toISOString().slice(0,10)}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => console.error('Erreur export PDF logistique:', err)
+    });
+  }
+
   addTask(): void {
     const newTaskNum = this.tasks.length;
     this.tasks.push({ Task: `T${newTaskNum}`, Duration: 2, Deadline: 5, Priority: 1 });
@@ -203,6 +231,7 @@ export class SimulationComponent implements OnInit {
         if (res.optimization_gain) this.optimizationGain = res.optimization_gain;
         if (res.interpretation)    this.interpretation = res.interpretation;
         this.executionTimeMs = res.execution_time_ms || 0;
+        if (res.interpretation_ia) this.interpretationIa = res.interpretation_ia;
       },
       error: (err) => {
         console.error('❌ Erreur scheduling', err);
@@ -252,6 +281,8 @@ export class SimulationComponent implements OnInit {
       }
     });
   }
+
+
 
   onMachinesChange(event: any): void {
     this.numMachines = parseInt(event.target.value);

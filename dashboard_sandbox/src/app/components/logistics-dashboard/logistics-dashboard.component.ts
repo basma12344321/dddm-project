@@ -187,6 +187,11 @@ export interface InterpretationData {
         </div>
       </div>
 
+      <div class="interpretation-ia-section" *ngIf="interpretationIa">
+        <h4> Analyse IA</h4>
+        <div class="ia-content" [innerHTML]="formattedIa"></div>
+      </div>
+
       <!-- Temps d'exécution -->
       <div class="execution-time" *ngIf="executionTimeMs">
         <span>Temps d'exécution: {{executionTimeMs}} ms</span>
@@ -439,6 +444,18 @@ export interface InterpretationData {
       font-size: 12px;
     }
 
+    .interpretation-ia-section {
+      background: linear-gradient(135deg, #fff8f0 0%, #fff 100%);
+      border: 1px solid rgba(255, 71, 87, 0.12);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+    .interpretation-ia-section h4 { margin: 0 0 15px 0; color: #ff4757; font-weight: 600; }
+    .ia-content { color: #444; line-height: 1.75; font-size: 14px; }
+    .ia-content strong { color: #222; font-weight: 700; }
+
     @media (max-width: 768px) {
       .metrics-cards {
         grid-template-columns: repeat(2, 1fr);
@@ -456,6 +473,7 @@ export class LogisticsDashboardComponent implements OnChanges {
   @Input() optimizationGain: OptimizationGain | null = null;
   @Input() interpretation: InterpretationData | null = null;
   @Input() executionTimeMs: number = 0;
+  @Input() interpretationIa: string = '';
 
   utilizationChartOptions: any;
   convergenceChartOptions: any;
@@ -466,6 +484,13 @@ export class LogisticsDashboardComponent implements OnChanges {
     return utils.length > 0
       ? (utils.reduce((a, b) => a + b, 0) / utils.length * 100).toFixed(0) as any
       : 0;
+  }
+
+  get formattedIa(): string {
+    if (!this.interpretationIa) return '';
+    return this.interpretationIa
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
   }
 
   ngOnChanges(changes: SimpleChanges): void {

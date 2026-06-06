@@ -1,6 +1,8 @@
 import os
 from groq import Groq
+from dotenv import load_dotenv
 
+load_dotenv()  # ← ajouter cette ligne
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def generate_interpretation(prompt: str) -> str:

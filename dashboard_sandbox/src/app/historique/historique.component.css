@@ -1,0 +1,72 @@
+.historique-wrapper { padding: 28px; }
+.historique-wrapper {
+  padding: 28px;
+  padding-top: 80px;  /* ✅ évite le chevauchement avec la navbar */
+}
+.historique-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.historique-header h2 { color: #222; font-size: 1.4rem; margin: 0; }
+
+.count-badge {
+  background: #ff4757;
+  color: white;
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 0.85rem;
+}
+
+.analyses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.analyse-card {
+  background: white;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  border-left: 4px solid #ff4757;
+  transition: transform 0.2s;
+}
+
+.analyse-card:hover { transform: translateY(-3px); }
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.filename { font-weight: 600; font-size: 0.9rem; color: #333; }
+
+.badge {
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.badge-green { background: #e8f5e9; color: #27ae60; }
+.badge-orange { background: #fff3e0; color: #f39c12; }
+.badge-red { background: #ffebee; color: #e74c3c; }
+
+.roic-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ff4757;
+  margin-bottom: 12px;
+}
+
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: #999;
+}

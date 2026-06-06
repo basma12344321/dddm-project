@@ -17,6 +17,8 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from io import BytesIO
 import datetime
+from app.llm_utils import generate_interpretation
+from app.plugins.logistic_plugin import LogisticPlugin
 
 
 from app.core_engine.core_engine import clean_data
@@ -463,6 +465,21 @@ def schedule():
         db.session.add(sched_result)
         db.session.commit()
 
+        # ── Appel LLM ────────────────────────────────────────────────
+        try:
+            lp = LogisticPlugin()
+            prompt = lp._build_llm_prompt(
+                result.metrics or {},
+                result.interpretation or {},
+                len(tasks),
+                num_machines
+            )
+            interpretation_ia = generate_interpretation(prompt)
+            print("Interprétation LLM logistique générée avec succès")
+        except Exception as llm_err:
+            print(f"Avertissement LLM: {llm_err}")
+            interpretation_ia = "Interprétation non disponible."
+
         # Construire la réponse
         response = {
             "status": result.status,
@@ -472,6 +489,7 @@ def schedule():
             "optimization_gain": result.optimization_gain,
             "convergence_data": result.convergence_data,
             "interpretation": result.interpretation,
+            "interpretation_ia": interpretation_ia,
             "session_id": session.id
         }
 
@@ -811,6 +829,144 @@ def export_pdf():
 
     except Exception as e:
         print(f"Erreur export PDF: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/export-pdf-logistic', methods=['POST'])
+def export_pdf_logistic():
+    try:
+        data = request.get_json()
+        metrics         = data.get('metrics', {})
+        interpretation  = data.get('interpretation', {})
+        interpretation_ia = data.get('interpretation_ia', '')
+        optimization_gain = data.get('optimization_gain', {})
+        gantt_data      = data.get('gantt_data', [])
+        num_tasks       = data.get('num_tasks', 0)
+        num_machines    = data.get('num_machines', 0)
+        rule            = data.get('rule', '')
+
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4,
+                                rightMargin=2*cm, leftMargin=2*cm,
+                                topMargin=2*cm, bottomMargin=2*cm)
+
+        styles = getSampleStyleSheet()
+        elements = []
+
+        title_style = ParagraphStyle('title', parent=styles['Title'],
+                                     fontSize=20, textColor=colors.HexColor('#ff4757'),
+                                     spaceAfter=6, alignment=TA_CENTER)
+        section_style = ParagraphStyle('section', parent=styles['Heading2'],
+                                       fontSize=13, textColor=colors.HexColor('#ff4757'),
+                                       spaceBefore=12, spaceAfter=6)
+        normal_style = ParagraphStyle('normal', parent=styles['Normal'],
+                                      fontSize=10, leading=16, spaceAfter=4)
+        date_style = ParagraphStyle('date', parent=styles['Normal'],
+                                    fontSize=9, textColor=colors.grey, alignment=TA_CENTER)
+
+        # Titre
+        elements.append(Paragraph("SmartDecide — Rapport d'Ordonnancement Logistique", title_style))
+        elements.append(Paragraph(datetime.datetime.now().strftime("%d/%m/%Y %H:%M"), date_style))
+        elements.append(Spacer(1, 0.4*cm))
+        elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#ff4757')))
+        elements.append(Spacer(1, 0.4*cm))
+
+        # Paramètres
+        elements.append(Paragraph("Paramètres de l'ordonnancement", section_style))
+        params_data = [
+            ['Paramètre', 'Valeur'],
+            ['Nombre de tâches', str(num_tasks)],
+            ['Nombre de machines', str(num_machines)],
+            ['Règle heuristique', rule],
+        ]
+        params_table = Table(params_data, colWidths=[6*cm, 11*cm])
+        params_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#ff4757')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fff5f5')]),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#ffcccc')),
+            ('PADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(params_table)
+        elements.append(Spacer(1, 0.4*cm))
+
+        # Métriques
+        elements.append(Paragraph("Métriques de performance", section_style))
+        on_time = round((metrics.get('on_time_rate', 0) * 100), 1)
+        balance = round(metrics.get('balance_index', 0), 2)
+        utilization = round(metrics.get('avg_utilization', 0) * 100, 1)
+        metrics_data = [
+            ['Métrique', 'Valeur'],
+            ['Makespan total', f"{metrics.get('makespan', 0)} unités"],
+            ['Taux de conformité', f"{on_time}%"],
+            ['Index d\'équilibrage', f"{balance} / 1.0"],
+            ['Utilisation moyenne', f"{utilization}%"],
+            ['Retard total', f"{metrics.get('total_tardiness', 0)} unités"],
+        ]
+        metrics_table = Table(metrics_data, colWidths=[6*cm, 11*cm])
+        metrics_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#ff4757')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fff5f5')]),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#ffcccc')),
+            ('PADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(metrics_table)
+        elements.append(Spacer(1, 0.4*cm))
+
+        # Gain d'optimisation
+        if optimization_gain:
+            elements.append(Paragraph("Gain d'optimisation (Recuit Simulé)", section_style))
+            gain_data = [
+                ['Indicateur', 'Valeur'],
+                ['Makespan initial', str(optimization_gain.get('initial_makespan', '—'))],
+                ['Makespan optimisé', str(optimization_gain.get('optimized_makespan', '—'))],
+                ['Réduction makespan', f"-{optimization_gain.get('makespan_reduction_pct', 0)}%"],
+                ['Amélioration équilibrage', f"+{round(optimization_gain.get('balance_improvement', 0)*100, 1)}%"],
+            ]
+            gain_table = Table(gain_data, colWidths=[6*cm, 11*cm])
+            gain_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#ff4757')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fff5f5')]),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#ffcccc')),
+                ('PADDING', (0, 0), (-1, -1), 8),
+            ]))
+            elements.append(gain_table)
+            elements.append(Spacer(1, 0.4*cm))
+
+        # Alertes
+        alerts = interpretation.get('alerts', [])
+        if alerts:
+            elements.append(Paragraph("Alertes", section_style))
+            for alert in alerts:
+                elements.append(Paragraph(f"⚠ {alert}", normal_style))
+            elements.append(Spacer(1, 0.3*cm))
+
+        # Rapport LLM
+        if interpretation_ia:
+            elements.append(Paragraph("Analyse IA — Rapport narratif", section_style))
+            for line in interpretation_ia.split('\n'):
+                if line.strip():
+                    clean = line.replace('**', '').replace('* ', '• ')
+                    elements.append(Paragraph(clean, normal_style))
+
+        doc.build(elements)
+        buffer.seek(0)
+
+        from flask import send_file
+        return send_file(buffer, mimetype='application/pdf',
+                         as_attachment=True,
+                         download_name=f'rapport_logistique_{datetime.datetime.now().strftime("%Y%m%d_%H%M")}.pdf')
+
+    except Exception as e:
+        print(f"Erreur export PDF logistique: {e}")
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/', methods=['GET'])
