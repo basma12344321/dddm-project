@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pkl
+data/
+notebooks/
+scripts/
+test/
+*.log
+*.json

@@ -6,6 +6,9 @@ import os
 import math
 import pandas as pd
 import traceback
+import time
+import random
+from functools import lru_cache
 
 from app.core_engine.core_engine import clean_data
 from app.core_engine.plugin_loader import load_plugin
@@ -139,12 +142,12 @@ def analyze():
 # ✅ Ajouter cette route dans backend/app/routes/api.py
 # Juste après la route /analyze existante
 
+# Cache simple en mémoire (ticker -> (timestamp, data))
+_ticker_cache = {}
+CACHE_TTL = 300  # 5 minutes
+
 @api_bp.route('/analyze-ticker', methods=['POST'])
 def analyze_ticker():
-    """
-    Analyse une entreprise en temps réel via son ticker yfinance.
-    Body JSON : { "ticker": "AAPL" }
-    """
     if not request.is_json:
         return jsonify({"error": "Content-Type must be application/json"}), 415
 
@@ -157,30 +160,46 @@ def analyze_ticker():
 
         print(f"\n=== Analyse ticker : {ticker} ===")
 
+        # ── Vérifier le cache ─────────────────────────────────────────
+        now = time.time()
+        if ticker in _ticker_cache:
+            cached_time, cached_result = _ticker_cache[ticker]
+            if now - cached_time < CACHE_TTL:
+                print(f"Cache HIT pour {ticker}")
+                return jsonify(cached_result)
+
+        # ── Fetch yfinance avec retry ─────────────────────────────────
         import yfinance as yf
-        import requests
 
-        # 1. Création d'une session ultra-déguisée (Firefox)
-        session = requests.Session()
-        session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1'
-        })
+        info = None
+        last_error = None
 
-        # 2. On passe la session à yfinance
-        stock = yf.Ticker(ticker, session=session)
-        info  = stock.info
+        for attempt in range(3):
+            try:
+                if attempt > 0:
+                    wait = 2 ** attempt + random.uniform(1, 3)
+                    print(f"Retry {attempt}/3 pour {ticker} dans {wait:.1f}s...")
+                    time.sleep(wait)
 
-        if not info or len(info) < 10:
-            return jsonify({"error": f"Ticker '{ticker}' introuvable ou données insuffisantes"}), 404
+                stock = yf.Ticker(ticker)
+                info  = stock.info
+
+                if info and len(info) > 10:
+                    break
+                else:
+                    info = None
+
+            except Exception as e:
+                last_error = str(e)
+                print(f"Tentative {attempt+1} échouée: {last_error}")
+                if 'Rate limit' in str(e) or 'Too Many' in str(e):
+                    continue
+                else:
+                    raise
+
+        if not info:
+            msg = last_error or f"Données introuvables pour '{ticker}'"
+            return jsonify({"error": msg}), 429
 
         # ── Extraire les données financières ──────────────────────────
         revenue      = info.get('totalRevenue',      0) or 0
@@ -213,23 +232,22 @@ def analyze_ticker():
         debt_eq_ratio  = debt_eq / 100 if debt_eq > 10 else debt_eq
         sga_to_rev     = max(0, (revenue - gross_profit - ebit) / revenue) if revenue != 0 else 0
 
-        # ── Construire le DataFrame pour le modèle ────────────────────
+        # ── Construire le DataFrame ───────────────────────────────────
         sectors_list = [
             'Consumer Cyclical', 'Consumer Defensive', 'Energy',
             'Healthcare', 'Industrials', 'Technology'
         ]
 
         data_dict = {
-            'EBIT':              [ebit],
-            'Invested Capital':  [invested_cap],
-            'Free Cash Flow':    [fcf],
-            'Asset Turnover':    [asset_turnover],
-            'Debt to Equity':    [debt_eq_ratio],
-            'R&D to Revenue':    [0.0],
-            'SG&A to Revenue':   [sga_to_rev],
-            'Market Cap':        [market_cap],
+            'EBIT':             [ebit],
+            'Invested Capital': [invested_cap],
+            'Free Cash Flow':   [fcf],
+            'Asset Turnover':   [asset_turnover],
+            'Debt to Equity':   [debt_eq_ratio],
+            'R&D to Revenue':   [0.0],
+            'SG&A to Revenue':  [sga_to_rev],
+            'Market Cap':       [market_cap],
         }
-
         for s in sectors_list:
             data_dict[f'Sector_{s}'] = [1 if sector == s else 0]
         data_dict['Sector_Other'] = [0 if sector in sectors_list else 1]
@@ -242,35 +260,34 @@ def analyze_ticker():
             'Sector_Industrials', 'Sector_Other', 'Sector_Technology'
         ]
 
-        import pandas as pd
-        df_ticker = pd.DataFrame(data_dict, columns=expected_cols)
-
-        # ── Prédiction + SHAP ─────────────────────────────────────────
+        df_ticker  = pd.DataFrame(data_dict, columns=expected_cols)
         plugin     = load_plugin('finance')
         prediction = plugin._make_prediction(df_ticker)
         result     = plugin.interpret(prediction, df_ticker)
 
-        # ── Infos complémentaires sur l'entreprise ────────────────────
         result['company'] = {
-            'ticker':       ticker,
-            'name':         company_name,
-            'sector':       sector,
-            'market_cap':   market_cap,
+            'ticker':        ticker,
+            'name':          company_name,
+            'sector':        sector,
+            'market_cap':    market_cap,
             'current_price': info.get('currentPrice', 0),
-            'currency':     info.get('currency', 'USD'),
-            'country':      info.get('country', ''),
+            'currency':      info.get('currency', 'USD'),
+            'country':       info.get('country', ''),
         }
         result['financials'] = {
-            'revenue':       revenue,
-            'net_income':    net_income,
-            'ebit':          ebit,
-            'fcf':           fcf,
-            'market_cap':    market_cap,
-            'debt_equity':   debt_eq_ratio,
+            'revenue':        revenue,
+            'net_income':     net_income,
+            'ebit':           ebit,
+            'fcf':            fcf,
+            'market_cap':     market_cap,
+            'debt_equity':    debt_eq_ratio,
             'asset_turnover': asset_turnover,
         }
 
         result = sanitize_for_json(result)
+
+        # ── Mettre en cache ───────────────────────────────────────────
+        _ticker_cache[ticker] = (time.time(), result)
 
         # ── Sauvegarder en base ───────────────────────────────────────
         user_id  = get_current_user_id()
@@ -304,20 +321,21 @@ def simulate():
         return jsonify({"error": "Invalid JSON"}), 400
 
     plugin_name = payload.get("plugin")
-    scenario    = payload.get("params", {})
     analysis_id = payload.get("analysis_id")
+
+    # ✅ Accepter "data" (frontend) ou "params" (ancienne API)
+    scenario = payload.get("data") or payload.get("params")
 
     if not plugin_name:
         return jsonify({"error": "Missing 'plugin'"}), 400
     if not scenario:
-        return jsonify({"error": "Missing 'params'"}), 400
+        return jsonify({"error": "Missing 'data' or 'params'"}), 400
 
     try:
         plugin = load_plugin(plugin_name)
         result = plugin.simulate(scenario)
         result = sanitize_for_json(result)
 
-        # ✅ Sauvegarder la simulation dans PostgreSQL
         simulation = Simulation(
             analysis_id     = analysis_id,
             scenario_params = scenario,
@@ -325,13 +343,13 @@ def simulate():
         )
         db.session.add(simulation)
         db.session.commit()
-        print(f"Simulation sauvegardee en base (id={simulation.id})")
 
         result["simulation_id"] = simulation.id
         return jsonify(result)
 
     except Exception as e:
         print(f"Erreur simulate: {str(e)}")
+        traceback.print_exc()
         return jsonify({"error": f"Simulation failed: {str(e)}"}), 500
 
 

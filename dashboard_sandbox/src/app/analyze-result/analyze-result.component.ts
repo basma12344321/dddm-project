@@ -29,6 +29,7 @@ export class AnalyzeResultComponent implements OnInit {
   shapExplanation = '';
   shapBaseValue = 0;
   showShap = false;
+  interpretationIa = '';
 
   // Données Gantt (logistique)
   ganttSeries: any[] = [];
@@ -75,6 +76,7 @@ export class AnalyzeResultComponent implements OnInit {
           this.shapExplanation = this.rawResult.shap.explanation || '';
           this.shapBaseValue   = this.rawResult.shap.base_value || 0;
           this.showShap        = this.shapTopFeatures.length > 0;
+          this.interpretationIa = this.rawResult.interpretation_ia || '';
           console.log('SHAP chargé :', this.shapTopFeatures);
         }
       }
@@ -120,6 +122,13 @@ export class AnalyzeResultComponent implements OnInit {
     if (roicValue >= 0.15) return 'roic-good';
     if (roicValue >= 0.05) return 'roic-average';
     return 'roic-bad';
+  }
+
+  formatLlmLine(line: string): string {
+    return line
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/^\* /, '• ')
+      .replace(/^\d+\. /, (match) => `<strong>${match}</strong>`);
   }
 
   goToSimulation(): void {

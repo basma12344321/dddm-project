@@ -14,7 +14,7 @@ if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
 # Charger le .env
-load_dotenv(os.path.join(Path(__file__).parent.parent, '.env'))
+load_dotenv(os.path.join(Path(__file__).parent.parent, '.env'), override=False)
 
 # ✅ Import direct sans try/except pour éviter le double import
 from app.routes.api import api_bp

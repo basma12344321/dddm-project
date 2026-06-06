@@ -65,6 +65,17 @@
         </div>
       </div>
 
+      <div class="llm-card" *ngIf="interpretationIa">
+        <div class="llm-header">
+          <h3>Analyse IA — <span>Rapport narratif</span></h3>
+        </div>
+        <div class="llm-content">
+          <ng-container *ngFor="let line of interpretationIa.split('\n')">
+            <p *ngIf="line.trim()" [innerHTML]="formatLlmLine(line)"></p>
+          </ng-container>
+        </div>
+      </div>
+
       <!-- Légende -->
       <div class="shap-legend">
         <span class="legend-item positif"><span class="dot"></span> Augmente le ROIC</span>

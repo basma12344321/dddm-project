@@ -208,162 +208,349 @@ form button[mat-raised-button]:disabled {
 }
 
 
-/* =========================================
-   STYLE DE LA CONFIGURATION (LOGISTIQUE)
-   ========================================= */
+/* ============================================================
+   SMARTDECIDE — Simulation Logistique
+   Style : Blanc / Rose / Vert — cohérent avec analyze-result
+   ============================================================ */
 
-/* Le conteneur (Label + Sélecteur) pour éviter qu'ils ne se chevauchent */
-.config-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px; /* Donne de l'air entre le texte et la boîte */
-  width: 100%;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ── Wrapper ────────────────────────────────────────────────── */
+.simulation-wrapper {
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+  padding: 2rem 1.5rem 4rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #fff5f5 20%, #ffe8e8 40%, #f1f3f4 60%, #e9ecef 80%, #dee2e6 100%);
 }
 
-.config-item label {
-  font-weight: 600;
-  color: #343a40;
-  font-size: 0.95rem;
+.simulation-card,
+mat-card.simulation-card {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
-/* Le sélecteur de règles ultra-moderne */
-.rule-select {
-  /* 1. On efface le vieux style moche de Windows/Chrome */
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  
-  /* 2. Dimensions et respiration */
-  width: 100%;
-  max-width: 500px;
-  padding: 12px 40px 12px 16px; /* Plus d'espace à droite pour notre nouvelle flèche */
-  font-size: 14px;
-  font-family: inherit;
-  
-  /* 3. Couleurs et bordures assorties à ton thème */
-  color: #333;
-  background-color: #fff;
-  border: 1px solid #ced4da;
-  border-radius: 8px;
-  cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-  transition: all 0.3s ease;
-
-  /* 4. La magie : une belle flèche personnalisée (en SVG) encodée directement */
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23343a40%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-  background-repeat: no-repeat;
-  background-position: right 15px top 50%;
-  background-size: 12px auto;
+/* ── Titre ──────────────────────────────────────────────────── */
+h2.simulation-title,
+.simulation-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  text-align: center;
+  margin-bottom: 2rem;
+  letter-spacing: -0.02em;
 }
 
-/* Animation et couleur quand on passe la souris dessus */
-.rule-select:hover {
-  border-color: #ff6b7a;
-  box-shadow: 0 4px 12px rgba(255, 71, 87, 0.1);
-  transform: translateY(-1px);
+/* ── Cards génériques ───────────────────────────────────────── */
+.logistic-form .config-section,
+.logistic-form .tasks-section,
+.logistic-form .sa-config {
+  background: #ffffff;
+  border: 1px solid rgba(255, 71, 87, 0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease;
 }
 
-/* L'effet "Glow" (Halo lumineux) quand on clique pour ouvrir la liste */
-.rule-select:focus {
-  outline: none;
-  border-color: #ff4757;
-  box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.2);
+.logistic-form .config-section:hover,
+.logistic-form .tasks-section:hover {
+  box-shadow: 0 4px 20px rgba(255, 71, 87, 0.08);
 }
 
-/* Ajustement de la ligne de configuration pour bien aligner le slider et le sélecteur */
+/* ── Titres de section ──────────────────────────────────────── */
+.logistic-form .config-section h3,
+.logistic-form .tasks-section h3 {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ff4757;
+  margin: 0 0 1.25rem;
+}
+
+/* ── Config Row ─────────────────────────────────────────────── */
 .config-row {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 30px;
-  margin-bottom: 25px;
+  gap: 24px;
+  margin-bottom: 0;
 }
 
-/* =========================================
-   OPTIONS AVANCÉES (RECUIT SIMULÉ)
-   ========================================= */
-
-/* On transforme la balise details en une belle boîte */
-.sa-config details {
-  background: #ffffff;
-  border: 1px solid #ced4da;
-  border-radius: 8px;
-  margin-bottom: 25px;
-  overflow: hidden;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+.config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 160px;
 }
 
-/* Le titre cliquable (Summary) */
-.sa-config summary {
-  padding: 12px 16px;
+.config-item label {
+  font-size: 0.75rem;
   font-weight: 600;
-  color: #343a40;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #888;
+}
+
+/* ── Slider ─────────────────────────────────────────────────── */
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.slider-container input[type="range"] {
+  -webkit-appearance: none;
+  width: 130px;
+  height: 4px;
+  border-radius: 2px;
+  background: #f0f0f0;
+  outline: none;
   cursor: pointer;
-  background: #f8f9fa;
-  list-style: none; /* Cache la flèche native moche sur Firefox */
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ff4757;
+  box-shadow: 0 2px 8px rgba(255, 71, 87, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.slider-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ff4757;
+  min-width: 20px;
+}
+
+/* ── Sélecteurs ─────────────────────────────────────────────── */
+.rule-select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  padding: 10px 36px 10px 14px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  background-color: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath fill='%23ff4757' d='M0 0l6 8 6-8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+
+.rule-select:hover {
+  border-color: #ff6b7a;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(255, 71, 87, 0.1);
+}
+
+.rule-select:focus {
+  border-color: #ff4757;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.12);
+}
+
+/* ── Checkbox ───────────────────────────────────────────────── */
+.checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+  padding: 6px 0;
+  transition: color 0.2s ease;
+  flex-direction: row !important;
+}
+
+.checkbox-label:hover { color: #333; }
+
+.checkbox-label input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ddd;
+  border-radius: 5px;
+  background: #fff;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.checkbox-label input[type="checkbox"]:checked {
+  background: #ff4757;
+  border-color: #ff4757;
+}
+
+.checkbox-label input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 6px;
+  height: 10px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+/* ── SA Config ──────────────────────────────────────────────── */
+.sa-config {
+  background: #ffffff;
+  border: 1px solid rgba(255, 71, 87, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  padding: 0 !important;
+}
+
+.sa-config details {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+  border-radius: 0;
+}
+
+.sa-config summary {
+  padding: 14px 18px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #888;
+  cursor: pointer;
+  background: #fafafa;
+  list-style: none;
   user-select: none;
-  transition: background 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.2s ease;
 }
 
-/* Cache la flèche native moche sur Chrome/Safari */
-.sa-config summary::-webkit-details-marker {
-  display: none;
-}
+.sa-config summary:hover { color: #ff4757; }
+.sa-config summary::-webkit-details-marker { display: none; }
 
-/* On crée notre propre petite flèche animée */
 .sa-config summary::before {
   content: '▶';
-  display: inline-block;
-  margin-right: 10px;
-  font-size: 0.8em;
+  font-size: 0.6em;
   color: #ff4757;
-  transition: transform 0.3s ease;
+  transition: transform 0.2s ease;
 }
 
-/* Quand on ouvre, la flèche tourne et une ligne de séparation apparaît */
-.sa-config details[open] summary::before {
-  transform: rotate(90deg);
-}
+.sa-config details[open] summary::before { transform: rotate(90deg); }
+
 .sa-config details[open] summary {
-  border-bottom: 1px solid #ced4da;
+  border-bottom: 1px solid #f0f0f0;
+  color: #ff4757;
 }
 
-/* La zone avec les 3 cases de chiffres */
 .sa-fields {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  padding: 15px;
-  background: #fafafa;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 16px 18px;
+  background: #fff;
 }
+
+@media (max-width: 500px) { .sa-fields { grid-template-columns: 1fr; } }
 
 .sa-field {
-  flex: 1;
-  min-width: 150px;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
 .sa-field label {
-  font-size: 0.85rem;
-  color: #555;
+  font-size: 0.7rem;
   font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #aaa;
 }
 
-/* =========================================
-   TABLEAU DES TÂCHES
-   ========================================= */
+.sa-field input {
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  color: #333;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 8px 12px;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
+}
 
-/* La boîte qui entoure le tableau */
+.sa-field input:focus {
+  border-color: #ff4757;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.1);
+}
+
+/* ── Tasks Header ───────────────────────────────────────────── */
+.tasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.tasks-header h3 { margin: 0; }
+
+.add-task-btn,
+button.add-task-btn {
+  background: linear-gradient(135deg, #ff4757, #ff6b7a) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 20px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 6px 16px !important;
+  height: 32px !important;
+  line-height: 1 !important;
+  box-shadow: 0 3px 10px rgba(255, 71, 87, 0.3) !important;
+  transition: all 0.2s ease !important;
+}
+
+.add-task-btn:hover,
+button.add-task-btn:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px rgba(255, 71, 87, 0.35) !important;
+}
+
+/* ── Table ──────────────────────────────────────────────────── */
 .tasks-table {
   width: 100%;
   overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
   background: #fff;
-  border-radius: 8px;
-  border: 1px solid #ced4da;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .tasks-table table {
@@ -371,73 +558,374 @@ form button[mat-raised-button]:disabled {
   border-collapse: collapse;
 }
 
-/* En-têtes du tableau */
 .tasks-table th {
-  background: #f8f9fa;
-  padding: 12px 15px;
+  background: #fafafa;
+  padding: 10px 14px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #bbb;
+  border-bottom: 1px solid #f0f0f0;
   text-align: left;
-  font-weight: 600;
-  color: #343a40;
-  border-bottom: 2px solid #ced4da;
-  font-size: 0.95rem;
+  white-space: nowrap;
 }
 
-/* Cellules du tableau */
 .tasks-table td {
-  padding: 10px 15px;
-  border-bottom: 1px solid #eee;
+  padding: 8px 14px;
+  border-bottom: 1px solid #fafafa;
   vertical-align: middle;
 }
 
-/* Style partagé pour toutes les cases de texte et de nombres */
+.tasks-table tr:last-child td { border-bottom: none; }
+
+.tasks-table tr:hover td {
+  background: #fffafa;
+}
+
 .task-input,
 .duration-input,
-.deadline-input,
-.sa-field input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-  font-size: 14px;
+.deadline-input {
+  background: #fafafa;
+  border: 1px solid #ececec;
+  border-radius: 8px;
   color: #333;
-  box-sizing: border-box;
-  transition: all 0.3s ease;
-  background-color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 6px 10px;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
 }
 
-/* L'effet lumineux quand on clique dans une case */
 .task-input:focus,
 .duration-input:focus,
-.deadline-input:focus,
-.sa-field input:focus {
-  outline: none;
+.deadline-input:focus {
   border-color: #ff4757;
-  box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.2);
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 71, 87, 0.1);
 }
 
-/* Le sélecteur de priorité (la même magie que la règle SPT) */
 .priority-select {
   appearance: none;
   -webkit-appearance: none;
-  -moz-appearance: none;
-  width: 100%;
-  padding: 8px 30px 8px 12px;
-  font-size: 14px;
+  background-color: #fafafa;
+  border: 1px solid #ececec;
+  border-radius: 8px;
   color: #333;
-  background-color: #fff;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  padding: 6px 28px 6px 10px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  /* Flèche SVG encodée */
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23343a40%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%23ff4757' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 10px top 50%;
-  background-size: 10px auto;
+  background-position: right 10px center;
 }
 
 .priority-select:focus {
-  outline: none;
   border-color: #ff4757;
-  box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.2);
+  background-color: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 71, 87, 0.1);
+}
+
+/* Delete button */
+.tasks-table button[color="warn"] {
+  color: #ff4757 !important;
+  opacity: 0.4;
+  transition: opacity 0.2s ease !important;
+}
+.tasks-table button[color="warn"]:hover { opacity: 1 !important; }
+.tasks-table button[color="warn"]:disabled { opacity: 0.15 !important; }
+
+/* ── Bouton Lancer ──────────────────────────────────────────── */
+.logistic-form .analyze-button,
+.logistic-form button.analyze-button {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  height: 50px !important;
+  margin-top: 1.25rem !important;
+  background: linear-gradient(135deg, #ff4757 0%, #ff6b7a 100%) !important;
+  color: #fff !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em !important;
+  border: none !important;
+  border-radius: 25px !important;
+  box-shadow: 0 4px 20px rgba(255, 71, 87, 0.35) !important;
+  transition: all 0.25s ease !important;
+  cursor: pointer !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.logistic-form .analyze-button::before,
+.logistic-form button.analyze-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  transition: left 0.5s ease;
+}
+
+.logistic-form .analyze-button:hover::before { left: 100%; }
+
+.logistic-form .analyze-button:hover:not(:disabled),
+.logistic-form button.analyze-button:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 28px rgba(255, 71, 87, 0.45) !important;
+}
+
+.logistic-form .analyze-button:disabled,
+.logistic-form button.analyze-button:disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* ── Erreur ─────────────────────────────────────────────────── */
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 1rem;
+  padding: 12px 16px;
+  background: #fff5f5;
+  border: 1px solid rgba(255, 71, 87, 0.2);
+  border-radius: 10px;
+  color: #ff4757;
+  font-size: 13px;
+  font-weight: 500;
+  animation: fadeInUp 0.3s ease;
+}
+
+/* ── Résultats ──────────────────────────────────────────────── */
+.results-section {
+  margin-top: 1.5rem;
+  background: #ffffff;
+  border: 1px solid rgba(255, 71, 87, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  animation: fadeInUp 0.4s ease;
+  padding: 0;
+}
+
+.gantt-section {
+  padding: 1.5rem;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.dashboard-section {
+  padding: 1.5rem;
+}
+
+.gantt-section h3,
+.dashboard-section h3 {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ff4757;
+  margin: 0 0 1.25rem;
+}
+
+/* ── Animation ──────────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.logistic-form .config-section  { animation: fadeInUp 0.3s ease both; }
+.logistic-form .sa-config        { animation: fadeInUp 0.35s ease both; }
+.logistic-form .tasks-section    { animation: fadeInUp 0.4s ease both; }
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .simulation-wrapper { padding: 1rem 1rem 3rem; }
+  .config-row { gap: 16px; }
+}
+
+@media (max-width: 480px) {
+  .config-row { flex-direction: column; }
+  .sa-fields  { grid-template-columns: 1fr; }
+}
+
+/* =========================================
+   SIMULATION FINANCE - DESIGN MODERNE ROSE
+   ========================================= */
+
+.finance-form {
+  width: 100%;
+}
+
+.finance-subtitle {
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 1.5rem;
+}
+
+.finance-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.finance-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.finance-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.finance-field input,
+.finance-field select {
+  width: 100%;
+  height: 42px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 14px;
+  color: #333;
+  background: #fafafa;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.finance-field input:focus,
+.finance-field select:focus {
+  border-color: #D4537E;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(212, 83, 126, 0.12);
+}
+
+.finance-field input:hover,
+.finance-field select:hover {
+  border-color: #D4537E;
+  background: #fff;
+}
+
+/* Bouton lancer simulation (finance) */
+.finance-form .analyze-button {
+  width: 100% !important;
+  height: 46px !important;
+  margin-top: 1.5rem !important;
+  background: #D4537E !important;
+  color: #fff !important;
+  border-radius: 23px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(212, 83, 126, 0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+.finance-form .analyze-button:hover:not(:disabled) {
+  background: #993556 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(212, 83, 126, 0.4) !important;
+}
+
+.finance-form .analyze-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Bloc résultat finance */
+.result-block {
+  margin-top: 1.5rem;
+  background: linear-gradient(135deg, #FBEAF0 0%, #fff 100%);
+  border: 1px solid #F4C0D1;
+  border-radius: 12px;
+  padding: 1.5rem;
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.result-block h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #993556;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.result-item {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1rem;
+  border: 1px solid #F4C0D1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.result-item.roic-value .result-number {
+  font-size: 28px;
+  font-weight: 700;
+  color: #D4537E;
+}
+
+.result-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.result-badge {
+  display: inline-block;
+  font-size: 13px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.result-badge.moyenne { background: #FAEEDA; color: #854F0B; }
+.result-badge.elevee  { background: #EAF3DE; color: #3B6D11; }
+.result-badge.faible  { background: #FCEBEB; color: #A32D2D; }
+
+.result-comment {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.6;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border-radius: 8px;
+  border-left: 3px solid #D4537E;
+  margin-top: 0.5rem;
+}
+
+/* Responsive finance */
+@media (max-width: 480px) {
+  .finance-row  { grid-template-columns: 1fr; }
+  .result-grid  { grid-template-columns: 1fr; }
 }

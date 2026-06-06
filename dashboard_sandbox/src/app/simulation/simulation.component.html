@@ -148,16 +148,100 @@
     </div>
 
     <!-- FINANCE - Ancien formulaire -->
-    <div *ngIf="plugin === 'finance'" class="finance-form">
+<!-- FINANCE - Formulaire complet -->
+  <div *ngIf="plugin === 'finance'" class="finance-form">
 
-      <div *ngIf="result" class="result-block">
-        <h3>Résultat de la simulation</h3>
-        <p><strong>ROIC :</strong> {{ result.roic * 100 | number:'1.1-1' }}%</p>
-        <p><strong>Niveau :</strong> {{ result.niveau }}</p>
-        <p><strong>Commentaire :</strong> {{ result.commentaire }}</p>
+    <p class="finance-subtitle">Saisissez les indicateurs financiers pour simuler le ROIC prédit.</p>
+
+    <div class="finance-fields">
+
+      <div class="finance-row">
+        <div class="finance-field">
+          <label>EBIT (€)</label>
+          <input type="number" [(ngModel)]="financeParams.ebit" placeholder="ex: 5000000000">
+        </div>
+        <div class="finance-field">
+          <label>Capital Investi (€)</label>
+          <input type="number" [(ngModel)]="financeParams.invested_capital" placeholder="ex: 20000000000">
+        </div>
+      </div>
+
+      <div class="finance-row">
+        <div class="finance-field">
+          <label>Free Cash Flow (€)</label>
+          <input type="number" [(ngModel)]="financeParams.free_cash_flow" placeholder="ex: 3000000000">
+        </div>
+        <div class="finance-field">
+          <label>Market Cap (€)</label>
+          <input type="number" [(ngModel)]="financeParams.market_cap" placeholder="ex: 50000000000">
+        </div>
+      </div>
+
+      <div class="finance-row">
+        <div class="finance-field">
+          <label>Debt to Equity</label>
+          <input type="number" [(ngModel)]="financeParams.debt_to_equity" placeholder="ex: 0.5" step="0.01">
+        </div>
+        <div class="finance-field">
+          <label>Asset Turnover</label>
+          <input type="number" [(ngModel)]="financeParams.asset_turnover" placeholder="ex: 1.2" step="0.01">
+        </div>
+      </div>
+
+      <div class="finance-row">
+        <div class="finance-field">
+          <label>R&D to Revenue (%)</label>
+          <input type="number" [(ngModel)]="financeParams.rd_to_revenue" placeholder="ex: 0.08" step="0.001">
+        </div>
+        <div class="finance-field">
+          <label>SG&A to Revenue (%)</label>
+          <input type="number" [(ngModel)]="financeParams.sga_to_revenue" placeholder="ex: 0.12" step="0.001">
+        </div>
+      </div>
+
+      <div class="finance-row">
+        <div class="finance-field">
+          <label>Secteur</label>
+          <select [(ngModel)]="financeParams.sector">
+            <option value="Technology">Technology</option>
+            <option value="Healthcare">Healthcare</option>
+            <option value="Consumer Cyclical">Consumer Cyclical</option>
+            <option value="Consumer Defensive">Consumer Defensive</option>
+            <option value="Energy">Energy</option>
+            <option value="Industrials">Industrials</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
       </div>
 
     </div>
+
+    <button mat-raised-button color="accent" class="analyze-button"
+            (click)="onSubmit()" [disabled]="isLoading">
+      <mat-icon>play_arrow</mat-icon>
+      {{ isLoading ? 'Calcul en cours...' : 'Lancer la simulation' }}
+    </button>
+
+    <div *ngIf="error" class="error-message">
+      <mat-icon>error</mat-icon> {{ error }}
+    </div>
+
+    <div *ngIf="result" class="result-block">
+      <h3>Résultat de la simulation</h3>
+      <div class="result-grid">
+        <div class="result-item roic-value">
+          <span class="result-label">ROIC prédit</span>
+          <span class="result-number">{{ result.roic * 100 | number:'1.1-1' }}%</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Niveau</span>
+          <span class="result-badge" [ngClass]="result.niveau">{{ result.niveau }}</span>
+        </div>
+      </div>
+      <p class="result-comment"><strong>Analyse :</strong> {{ result.commentaire }}</p>
+    </div>
+
+  </div>
 
   </mat-card>
 </div>
